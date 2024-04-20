@@ -22,6 +22,12 @@ export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
   ) {
     this.log.debug('Finished initializing platform:', this.config.name);
 
+    // Homebridge 1.8.0 introduced a `log.success` method that can be used to log success messages
+    // For users that are on a version prior to 1.8.0, we need a 'polyfill' for this method
+    if (!log.success) {
+      log.success = log.info;
+    }
+
     // When this event is fired it means Homebridge has restored all cached accessories from disk.
     // Dynamic Platform plugins should only register new accessories after this event was fired,
     // in order to ensure they weren't added to homebridge already. This event can also be used
@@ -35,12 +41,12 @@ export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
 
   /**
    * This function is invoked when homebridge restores cached accessories from disk at startup.
-   * It should be used to setup event handlers for characteristics and update respective values.
+   * It should be used to set up event handlers for characteristics and update respective values.
    */
   configureAccessory(accessory: PlatformAccessory) {
     this.log.info('Loading accessory from cache:', accessory.displayName);
 
-    // add the restored accessory to the accessories cache so we can track if it has already been registered
+    // add the restored accessory to the accessories cache, so we can track if it has already been registered
     this.accessories.push(accessory);
   }
 
@@ -81,7 +87,7 @@ export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
         // the accessory already exists
         this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
 
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
+        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. e.g.:
         // existingAccessory.context.device = device;
         // this.api.updatePlatformAccessories([existingAccessory]);
 
@@ -89,7 +95,7 @@ export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
         // this is imported from `platformAccessory.ts`
         new ExamplePlatformAccessory(this, existingAccessory);
 
-        // it is possible to remove platform accessories at any time using `api.unregisterPlatformAccessories`, eg.:
+        // it is possible to remove platform accessories at any time using `api.unregisterPlatformAccessories`, e.g.:
         // remove platform accessories when no longer present
         // this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
         // this.log.info('Removing existing accessory from cache:', existingAccessory.displayName);
