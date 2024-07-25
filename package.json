@@ -14,8 +14,8 @@
     "url": "https://github.com/USERNAME/GITHUB_PROJECT_NAME/issues"
   },
   "engines": {
-    "node": "^18.17.0 || ^20.9.0",
-    "homebridge": "^1.8.0"
+    "node": "^18.20.4 || ^20.16.0 || ^22.5.1",
+    "homebridge": "^1.8.0 || ^2.0.0-beta.0"
   },
   "main": "dist/index.js",
   "scripts": {
@@ -28,14 +28,14 @@
     "homebridge-plugin"
   ],
   "devDependencies": {
-    "@types/node": "^20.14.10",
-    "@typescript-eslint/eslint-plugin": "^7.16.0",
-    "@typescript-eslint/parser": "^7.16.0",
+    "@types/node": "^20.14.12",
+    "@typescript-eslint/eslint-plugin": "^7.17.0",
+    "@typescript-eslint/parser": "^7.17.0",
     "eslint": "^8.57.0",
-    "homebridge": "^1.8.3",
+    "homebridge": "^2.0.0-beta.0",
     "nodemon": "^3.1.4",
     "rimraf": "^6.0.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.4"
   }
 }
