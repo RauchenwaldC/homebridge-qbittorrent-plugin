@@ -10,18 +10,18 @@
 
 </span>
 
-> [!IMPORTANT]  
+> [!IMPORTANT]
 > **Homebridge v2.0 Information**
-> 
+>
 > This template currently has a
 > - `package.json -> engines.homebridge` value of `"^1.8.0 || ^2.0.0-beta.0"`
 > - `package.json -> devDependencies.homebridge` value of `"^2.0.0-beta.0"`
 >
 > This is to ensure that your plugin will build and run on both Homebridge v1 and v2.
-> 
+>
 > Once Homebridge v2.0 has been released, you can remove the `-beta.0` in both places.
 
-> [!IMPORTANT]  
+> [!IMPORTANT]
 > **Node v22 Information**
 >
 > This template currently has a
@@ -65,8 +65,9 @@ Open the [`package.json`](./package.json) and change the following attributes:
 
 - `name` - this should be prefixed with `homebridge-` or `@username/homebridge-`, is case-sensitive, and contains no spaces nor special characters apart from a dash `-`
 - `displayName` - this is the "nice" name displayed in the Homebridge UI
-- `repository.url` - Link to your GitHub repo
-- `bugs.url` - Link to your GitHub repo issues page
+- `homepage` - link to your GitHub repo's `README.md`
+- `repository.url` - link to your GitHub repo
+- `bugs.url` - link to your GitHub repo issues page
 
 When you are ready to publish the plugin you should set `private` to false, or remove the attribute entirely.
 
@@ -75,7 +76,7 @@ When you are ready to publish the plugin you should set `private` to false, or r
 Open the [`src/settings.ts`](./src/settings.ts) file and change the default values:
 
 - `PLATFORM_NAME` - Set this to be the name of your platform. This is the name of the platform that users will use to register the plugin in the Homebridge `config.json`.
-- `PLUGIN_NAME` - Set this to be the same name you set in the [`package.json`](./package.json) file. 
+- `PLUGIN_NAME` - Set this to be the same name you set in the [`package.json`](./package.json) file.
 
 Open the [`config.schema.json`](./config.schema.json) file and change the following attribute:
 
@@ -190,6 +191,7 @@ sudo npm install -g homebridge-example-plugin@beta
 ```
 
 ### Best Practices
+
 Consider creating your plugin with the [Homebridge Verified](https://github.com/homebridge/verified) criteria in mind. This will help you to create a plugin that is easy to use and works well with Homebridge.
 You can then submit your plugin to the Homebridge Verified list for review.
 The most up-to-date criteria can be found [here](https://github.com/homebridge/verified#requirements).
@@ -208,5 +210,7 @@ For reference, the current criteria are:
 - If the plugin needs to write files to disk (cache, keys, etc.), it must store them inside the Homebridge storage directory.
 
 ### Useful Links
+
 Note these links are here for help but are not supported/verified by the Homebridge team
+
 - [Custom Characteristics](https://github.com/homebridge/homebridge-plugin-template/issues/20)

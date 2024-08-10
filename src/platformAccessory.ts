@@ -1,6 +1,6 @@
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 
-import { ExampleHomebridgePlatform } from './platform.js';
+import type { ExampleHomebridgePlatform } from './platform.js';
 
 /**
  * Platform Accessory
@@ -23,7 +23,6 @@ export class ExamplePlatformAccessory {
     private readonly platform: ExampleHomebridgePlatform,
     private readonly accessory: PlatformAccessory,
   ) {
-
     // set accessory information
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Default-Manufacturer')
@@ -43,12 +42,12 @@ export class ExamplePlatformAccessory {
 
     // register handlers for the On/Off Characteristic
     this.service.getCharacteristic(this.platform.Characteristic.On)
-      .onSet(this.setOn.bind(this))                // SET - bind to the `setOn` method below
-      .onGet(this.getOn.bind(this));               // GET - bind to the `getOn` method below
+      .onSet(this.setOn.bind(this)) // SET - bind to the `setOn` method below
+      .onGet(this.getOn.bind(this)); // GET - bind to the `getOn` method below
 
     // register handlers for the Brightness Characteristic
     this.service.getCharacteristic(this.platform.Characteristic.Brightness)
-      .onSet(this.setBrightness.bind(this));       // SET - bind to the 'setBrightness` method below
+      .onSet(this.setBrightness.bind(this)); // SET - bind to the 'setBrightness` method below
 
     /**
      * Creating multiple services of the same type.
@@ -62,11 +61,11 @@ export class ExamplePlatformAccessory {
      */
 
     // Example: add two "motion sensor" services to the accessory
-    const motionSensorOneService = this.accessory.getService('Motion Sensor One Name') ||
-      this.accessory.addService(this.platform.Service.MotionSensor, 'Motion Sensor One Name', 'YourUniqueIdentifier-1');
+    const motionSensorOneService = this.accessory.getService('Motion Sensor One Name')
+      || this.accessory.addService(this.platform.Service.MotionSensor, 'Motion Sensor One Name', 'YourUniqueIdentifier-1');
 
-    const motionSensorTwoService = this.accessory.getService('Motion Sensor Two Name') ||
-      this.accessory.addService(this.platform.Service.MotionSensor, 'Motion Sensor Two Name', 'YourUniqueIdentifier-2');
+    const motionSensorTwoService = this.accessory.getService('Motion Sensor Two Name')
+      || this.accessory.addService(this.platform.Service.MotionSensor, 'Motion Sensor Two Name', 'YourUniqueIdentifier-2');
 
     /**
      * Updating characteristics values asynchronously.
@@ -137,5 +136,4 @@ export class ExamplePlatformAccessory {
 
     this.platform.log.debug('Set Characteristic Brightness -> ', value);
   }
-
 }
