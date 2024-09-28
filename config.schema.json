@@ -1,7 +1,7 @@
 {
   "pluginAlias": "qBittorrentHomebridgePlugin",
   "pluginType": "platform",
-  "singular": false,
+  "singular": true,
   "schema": {
     "type": "object",
     "properties": {
