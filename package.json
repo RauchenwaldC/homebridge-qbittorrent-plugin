@@ -7,16 +7,19 @@
   "description": "A short description about what your plugin does.",
   "author": "Your Name",
   "license": "Apache-2.0",
-  "homepage": "https://github.com/USERNAME/GITHUB_PROJECT_NAME#readme",
+  "homepage": "https://git.convertain.com/christian-rauchenwald/homebridge/homebridge-qbittorrent-plugin#README.md",
   "repository": {
     "type": "git",
-    "url": "https://github.com/USERNAME/GITHUB_PROJECT_NAME.git"
+    "url": "https://git.convertain.com/christian-rauchenwald/homebridge/homebridge-qbittorrent-plugin.git"
   },
   "bugs": {
-    "url": "https://github.com/USERNAME/GITHUB_PROJECT_NAME/issues"
+    "url": "https://git.convertain.com/christian-rauchenwald/homebridge/homebridge-qbittorrent-plugin/-/issues"
   },
   "keywords": [
-    "homebridge-plugin"
+    "homebridge-plugin",
+    "homebridge",
+    "qbittorrent",
+    "torrent"
   ],
   "main": "dist/index.js",
   "engines": {
