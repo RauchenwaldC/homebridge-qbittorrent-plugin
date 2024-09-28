@@ -11,14 +11,13 @@ sync_to_github:
     - |
       git config user.email "support@c18d.com"  # Set a CI-specific email for the local repo
       git config user.name "CI Runner"          # Set a CI-specific username for the local repo
+      git fetch origin master  # Fetch the latest changes from GitLab
+      git checkout master       # Switch to the master branch
       if [ $(git branch --list main) ]; then
-        # If the main branch exists, push it
-        git push github main --force
+        # If the main branch exists, push the master branch to main
+        git push github master:main --force  # Push master to main
       else
-        # If no branches exist, create a new commit, create the main branch, and push to main
-        echo "# Homebridge qBittorrent Plugin" >> README.md
-        git add README.md
-        git commit -m "Initial commit"
+        # If the main branch does not exist, create it from master
         git checkout -b main  # Create and switch to the main branch
         git push --set-upstream github main --force  # Set upstream while pushing
       fi
