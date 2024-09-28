@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "A short description about what your plugin does.",
-  "author": "Your Name",
+  "author": "Christian Rauchenwald",
   "license": "Apache-2.0",
   "homepage": "https://git.convertain.com/christian-rauchenwald/homebridge/homebridge-qbittorrent-plugin#README.md",
   "repository": {
