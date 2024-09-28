@@ -1,6 +1,5 @@
 stages:
   - sync
-  - release
 
 sync_to_github:  
   stage: sync
@@ -17,21 +16,3 @@ sync_to_github:
       git push github master --force  # Push the master branch to GitHub
   only:
     - master
-
-create_github_release:
-  stage: release
-  script:
-    - |
-      TAG_NAME="${CI_COMMIT_TAG}"  # Use the tag from GitLab
-      if [ -z "$TAG_NAME" ]; then
-        echo "No tag found. Skipping release creation."
-        exit 0
-      fi
-      RELEASE_NOTES=$(cat RELEASE_NOTES.md)  # Read release notes from a file
-      curl -X POST \
-        -H "Authorization: token ${GITHUB_TOKEN}" \
-        -H "Content-Type: application/json" \
-        -d "{\"tag_name\":\"$TAG_NAME\",\"name\":\"Release $TAG_NAME\",\"body\":\"$RELEASE_NOTES\"}" \
-        "https://api.github.com/repos/RauchenwaldC/homebridge-qbittorrent-plugin/releases"
-  only:
-    - tags
