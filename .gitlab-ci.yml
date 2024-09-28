@@ -13,13 +13,6 @@ sync_to_github:
       git config user.name "CI Runner"          # Set a CI-specific username for the local repo
       git fetch origin master  # Fetch the latest changes from GitLab
       git checkout master       # Switch to the master branch
-      if [ $(git branch --list main) ]; then
-        # If the main branch exists, push the master branch to main
-        git push github master:main --force  # Push master to main
-      else
-        # If the main branch does not exist, create it from master
-        git checkout -b main  # Create and switch to the main branch
-        git push --set-upstream github main --force  # Set upstream while pushing
-      fi
+      git push github master --force  # Push the master branch to GitHub
   only:
     - master
