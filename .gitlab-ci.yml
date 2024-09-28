@@ -15,10 +15,11 @@ sync_to_github:
         # If the main branch exists, push it
         git push github main --force
       else
-        # If no branches exist, create a new commit and push to main
+        # If no branches exist, create a new commit, create the main branch, and push to main
         echo "# Homebridge qBittorrent Plugin" >> README.md
         git add README.md
         git commit -m "Initial commit"
+        git checkout -b main  # Create and switch to the main branch
         git push github main --force
       fi
   only:
