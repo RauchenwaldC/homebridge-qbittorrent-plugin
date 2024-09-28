@@ -3,6 +3,8 @@ import type { API, Characteristic, DynamicPlatformPlugin, Logging, PlatformAcces
 import { qBittorrentPlatformAccessory } from './platformAccessory.js';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
 
+import axios from 'axios';
+
 /**
  * HomebridgePlatform
  * This class is the main constructor for your plugin, this is where you should
@@ -14,6 +16,7 @@ export class qBittorrentPlatform implements DynamicPlatformPlugin {
 
   // this is used to track restored cached accessories
   public readonly accessories: PlatformAccessory[] = [];
+  private sid: string | null = null; // Store SID for authenticated requests
 
   constructor(
     public readonly log: Logging,
@@ -26,35 +29,19 @@ export class qBittorrentPlatform implements DynamicPlatformPlugin {
     this.log.debug('Finished initializing platform:', this.config.name);
 
     // When this event is fired it means Homebridge has restored all cached accessories from disk.
-    // Dynamic Platform plugins should only register new accessories after this event was fired,
-    // in order to ensure they weren't added to homebridge already. This event can also be used
-    // to start discovery of new accessories.
     this.api.on('didFinishLaunching', () => {
       log.debug('Executed didFinishLaunching callback');
-      // run the method to discover / register your devices as accessories
       this.discoverDevices();
     });
   }
 
-  /**
-   * This function is invoked when homebridge restores cached accessories from disk at startup.
-   * It should be used to set up event handlers for characteristics and update respective values.
-   */
   configureAccessory(accessory: PlatformAccessory) {
     this.log.info('Loading accessory from cache:', accessory.displayName);
-
-    // add the restored accessory to the accessories cache, so we can track if it has already been registered
     this.accessories.push(accessory);
   }
 
-  /**
-   * This is an example method showing how to register discovered accessories.
-   * Accessories must only be registered once, previously created accessories
-   * must not be registered again to prevent "duplicate UUID" errors.
-   */
   discoverDevices() {
     const uuid = this.api.hap.uuid.generate('AdvancedRateLimitsSwitch');
-
     const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
 
     if (existingAccessory) {
@@ -65,6 +52,64 @@ export class qBittorrentPlatform implements DynamicPlatformPlugin {
       const accessory = new this.api.platformAccessory('Advanced Rate Limits', uuid);
       new qBittorrentPlatformAccessory(this, accessory);
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+    }
+  }
+
+  async authenticate(): Promise<void> {
+    const { apiUrl, username, password } = this.config;
+    const cleanedApiUrl = apiUrl.replace(/\/+$/, '');
+
+    try {
+      const response = await axios.post(`${cleanedApiUrl}/api/v2/auth/login`, `username=${username}&password=${password}`, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Referer': cleanedApiUrl,
+        },
+        withCredentials: true,
+      });
+
+      if (response.status === 200) {
+        const cookies = response.headers['set-cookie'];
+        if (cookies) {
+          const sidCookie = cookies.find(cookie => cookie.startsWith('SID='));
+          this.sid = sidCookie ? sidCookie.split(';')[0] : null; // Safely set sid
+          this.log.debug(`Authenticated successfully. SID: ${this.sid}`);
+        } else {
+          this.log.error('No cookies returned from login response');
+        }
+      } else {
+        this.log.error('Authentication failed:', response.status);
+      }
+    } catch (error) {
+      this.log.error('Error during authentication:', error);
+    }
+  }
+
+  getSid(): string | null {
+    return this.sid; // Method to access the SID
+  }
+
+  async toggleAdvancedRateLimits(enable: boolean): Promise<void> {
+    await this.authenticate(); // Ensure we are authenticated before making requests
+    const { apiUrl } = this.config;
+    const cleanedApiUrl = apiUrl.replace(/\/+$/, '');
+
+    try {
+      // Use GET request to toggle the state of alternative speed limits
+      const toggleResponse = await axios.get(`${cleanedApiUrl}/api/v2/transfer/toggleSpeedLimitsMode`, {
+        headers: {
+          'Referer': cleanedApiUrl,
+          'Cookie': this.getSid() || '', // Use the getter method to access sid
+        },
+      });
+
+      if (toggleResponse.status === 200) {
+        this.log.info(`Advanced Rate Limits ${enable ? 'enabled' : 'disabled'}`);
+      } else {
+        this.log.error('Failed to toggle Advanced Rate Limits:', toggleResponse.status);
+      }
+    } catch (error) {
+      this.log.error('Error toggling Advanced Rate Limits:', error);
     }
   }
 }
