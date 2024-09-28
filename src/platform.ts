@@ -36,14 +36,23 @@ export class qBittorrentPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
+    
+      // Update the context or configuration of the existing accessory if needed
       new qBittorrentPlatformAccessory(this, existingAccessory);
+    
+    // Optionally update the accessory in Homebridge if changes were made
+    // this.api.updatePlatformAccessories([existingAccessory]);
     } else {
       this.log.info('Adding new accessory: Advanced Rate Limits Switch');
+    
       const accessory = new this.api.platformAccessory('Advanced Rate Limits', uuid);
       new qBittorrentPlatformAccessory(this, accessory);
+    
+      // Register the new accessory
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
     }
   }
+
 
   async authenticate(): Promise<void> {
     const { apiUrl, username, password } = this.config;
