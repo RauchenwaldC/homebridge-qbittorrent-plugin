@@ -87,12 +87,11 @@ export class qBittorrentPlatform implements DynamicPlatformPlugin {
     try {
       const toggleResponse = await axios.post(
         `${cleanedApiUrl}/api/v2/transfer/toggleSpeedLimitsMode`, 
-        null, // No request body
+        null,
         {
           headers: {
             'Referer': cleanedApiUrl,
             'Cookie': this.getSid() || '',
-            'Content-Type': 'application/json', // Ensure content type is still set
           },
         },
       );
