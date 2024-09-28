@@ -9,8 +9,8 @@ sync_to_github:
         git remote add github https://${GITHUB_TOKEN}:x-oauth-basic@github.com/RauchenwaldC/homebridge-qbittorrent-plugin.git
       fi
     - |
-      git config user.email "support@c18d.com"
-      git config user.name "CI Runner"
+      git config user.email "support@c18d.com"  # Set a CI-specific email for the local repo
+      git config user.name "CI Runner"          # Set a CI-specific username for the local repo
       if [ $(git branch --list main) ]; then
         # If the main branch exists, push it
         git push github main --force
@@ -20,7 +20,7 @@ sync_to_github:
         git add README.md
         git commit -m "Initial commit"
         git checkout -b main  # Create and switch to the main branch
-        git push github main --force
+        git push --set-upstream github main --force  # Set upstream while pushing
       fi
   only:
     - master
