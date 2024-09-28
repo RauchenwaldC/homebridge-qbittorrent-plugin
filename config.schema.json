@@ -1,5 +1,5 @@
 {
-  "pluginAlias": "ExampleHomebridgePlugin",
+  "pluginAlias": "qBittorrentHomebridgePlugin",
   "pluginType": "platform",
   "singular": true,
   "schema": {
