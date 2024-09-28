@@ -10,6 +10,24 @@
         "type": "string",
         "required": true,
         "default": "qBittorrent Platform"
+      },
+      "apiUrl": {
+        "title": "API URL",
+        "type": "string",
+        "required": true,
+        "default": "http://localhost:8080"
+      },
+      "username": {
+        "title": "Username",
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      "password": {
+        "title": "Password",
+        "type": "string",
+        "required": false,
+        "default": ""
       }
     }
   }
