@@ -4,7 +4,10 @@ stages:
 sync_to_github:  
   stage: sync
   script:
-    - git remote add github https://${GITHUB_TOKEN}:x-oauth-basic@github.com/RauchenwaldC/homebridge-qbittorrent-plugin.git
+    - |
+      if ! git remote get-url github; then
+        git remote add github https://${GITHUB_TOKEN}:x-oauth-basic@github.com/RauchenwaldC/homebridge-qbittorrent-plugin.git
+      fi
     - git push github main --force
   only:
     - master
