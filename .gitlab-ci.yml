@@ -8,6 +8,16 @@ sync_to_github:
       if ! git remote get-url github; then
         git remote add github https://${GITHUB_TOKEN}:x-oauth-basic@github.com/RauchenwaldC/homebridge-qbittorrent-plugin.git
       fi
-    - git push github main --force
+    - |
+      if [ $(git branch --list main) ]; then
+        # If the main branch exists, push it
+        git push github main --force
+      else
+        # If no branches exist, create a new commit and push to main
+        echo "# Homebridge qBittorrent Plugin" >> README.md
+        git add README.md
+        git commit -m "Initial commit"
+        git push github main --force
+      fi
   only:
     - master
