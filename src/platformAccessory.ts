@@ -9,13 +9,17 @@ export class qBittorrentPlatformAccessory {
     private readonly platform: qBittorrentPlatform,
     private readonly accessory: PlatformAccessory,
   ) {
+    // Set the accessory information
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Default-Manufacturer')
       .setCharacteristic(this.platform.Characteristic.Model, 'Default-Model')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, 'Default-Serial');
 
-    this.service = this.accessory.addService(this.platform.Service.Switch, 'Advanced Rate Limits');
+    // Check if the service already exists; if not, create a new one
+    this.service = this.accessory.getService(this.platform.Service.Switch) 
+      || this.accessory.addService(this.platform.Service.Switch, 'Advanced Rate Limits');
 
+    // Set up event handlers for the service
     this.service.getCharacteristic(this.platform.Characteristic.On)
       .onSet(this.setAdvancedRateLimits.bind(this))
       .onGet(this.getAdvancedRateLimits.bind(this));
