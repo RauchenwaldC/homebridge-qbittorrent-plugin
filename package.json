@@ -1,8 +1,8 @@
 {
-  "name": "homebridge-plugin-name",
-  "displayName": "Plugin Name",
+  "name": "homebridge-qbittorrent-plugin",
+  "displayName": "qBittorrent Plugin",
   "type": "module",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "private": true,
   "description": "A short description about what your plugin does.",
   "author": "Your Name",
