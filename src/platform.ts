@@ -1,7 +1,6 @@
 import type { API, Characteristic, DynamicPlatformPlugin, Logging, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
 import { qBittorrentPlatformAccessory } from './platformAccessory.js';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
-import axios from 'axios';
 
 export class qBittorrentPlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service;
@@ -36,29 +35,21 @@ export class qBittorrentPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
-    
-      // Update the context or configuration of the existing accessory if needed
       new qBittorrentPlatformAccessory(this, existingAccessory);
-    
-    // Optionally update the accessory in Homebridge if changes were made
-    // this.api.updatePlatformAccessories([existingAccessory]);
     } else {
       this.log.info('Adding new accessory: Advanced Rate Limits Switch');
-    
       const accessory = new this.api.platformAccessory('Advanced Rate Limits', uuid);
       new qBittorrentPlatformAccessory(this, accessory);
-    
-      // Register the new accessory
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
     }
   }
-
 
   async authenticate(): Promise<boolean> {
     const { apiUrl, username, password } = this.config;
     const cleanedApiUrl = apiUrl.replace(/\/+$/, '');
 
     try {
+      const { default: axios } = await import('axios'); // Dynamic import of axios
       const response = await axios.post(`${cleanedApiUrl}/api/v2/auth/login`, `username=${username}&password=${password}`, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -103,6 +94,7 @@ export class qBittorrentPlatform implements DynamicPlatformPlugin {
     const cleanedApiUrl = apiUrl.replace(/\/+$/, '');
 
     try {
+      const { default: axios } = await import('axios'); // Dynamic import of axios
       const toggleResponse = await axios.post(
         `${cleanedApiUrl}/api/v2/transfer/toggleSpeedLimitsMode`, 
         null,
