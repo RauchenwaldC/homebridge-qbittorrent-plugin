@@ -4,6 +4,6 @@
 export const PLATFORM_NAME = 'qBittorrentHomebridgePlugin';
 
 /**
- * This must match the name of your plugin as defined the package.json
+ * This must match the name of your plugin as defined in the package.json
  */
 export const PLUGIN_NAME = 'homebridge-qbittorrent-plugin';
