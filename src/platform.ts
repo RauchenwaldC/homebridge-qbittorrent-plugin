@@ -54,7 +54,7 @@ export class qBittorrentPlatform implements DynamicPlatformPlugin {
   }
 
 
-  async authenticate(): Promise<void> {
+  async authenticate(): Promise<boolean> {
     const { apiUrl, username, password } = this.config;
     const cleanedApiUrl = apiUrl.replace(/\/+$/, '');
 
@@ -73,14 +73,18 @@ export class qBittorrentPlatform implements DynamicPlatformPlugin {
           const sidCookie = cookies.find(cookie => cookie.startsWith('SID='));
           this.sid = sidCookie ? sidCookie.split(';')[0] : null;
           this.log.debug(`Authenticated successfully. SID: ${this.sid}`);
+          return true; // Indicate successful authentication
         } else {
           this.log.error('No cookies returned from login response');
+          return false; // Fail early if no SID
         }
       } else {
         this.log.error('Authentication failed:', response.status);
+        return false;
       }
     } catch (error) {
       this.log.error('Error during authentication:', error);
+      return false;
     }
   }
 
@@ -89,7 +93,12 @@ export class qBittorrentPlatform implements DynamicPlatformPlugin {
   }
 
   async toggleAdvancedRateLimits(enable: boolean): Promise<void> {
-    await this.authenticate();
+    const authenticated = await this.authenticate();
+    if (!authenticated) {
+      this.log.error('Failed to authenticate. Cannot toggle rate limits.');
+      return; // Early return if authentication fails
+    }
+
     const { apiUrl } = this.config;
     const cleanedApiUrl = apiUrl.replace(/\/+$/, '');
 
