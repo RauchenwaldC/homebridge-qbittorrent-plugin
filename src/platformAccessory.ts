@@ -1,6 +1,5 @@
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import type { qBittorrentPlatform } from './platform.js';
-import axios from 'axios';
 
 export class qBittorrentPlatformAccessory {
   private service: Service;
@@ -52,6 +51,7 @@ export class qBittorrentPlatformAccessory {
         return false; // Early return with default state
       }
 
+      const { default: axios } = await import('axios'); // Dynamic import of axios
       const speedLimitsResponse = await axios.get(`${cleanedApiUrl}/api/v2/transfer/speedLimitsMode`, {
         headers: {
           'Cookie': this.platform.getSid() || '',
