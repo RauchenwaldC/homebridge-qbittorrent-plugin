@@ -5,48 +5,52 @@ import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
 export class qBittorrentPlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service;
   public readonly Characteristic: typeof Characteristic;
-  public readonly accessories: PlatformAccessory[] = [];
-  private sid: string | null = null;
+  public readonly accessories: PlatformAccessory[] = []; // List to keep track of loaded accessories
+  private sid: string | null = null; // Session ID for authentication
 
   constructor(
     public readonly log: Logging,
     public readonly config: PlatformConfig,
     public readonly api: API,
   ) {
-    this.Service = api.hap.Service;
-    this.Characteristic = api.hap.Characteristic;
+    this.Service = api.hap.Service; // Access Homebridge services
+    this.Characteristic = api.hap.Characteristic; // Access Homebridge characteristics
 
     this.log.debug('Finished initializing platform:', this.config.name);
 
+    // Callback for when Homebridge finishes launching
     this.api.on('didFinishLaunching', () => {
       log.debug('Executed didFinishLaunching callback');
-      this.discoverDevices();
+      this.discoverDevices(); // Discover devices on launch
     });
   }
 
+  // Called when an accessory is loaded from cache
   configureAccessory(accessory: PlatformAccessory) {
     this.log.info('Loading accessory from cache:', accessory.displayName);
-    this.accessories.push(accessory);
+    this.accessories.push(accessory); // Add accessory to the list
   }
 
+  // Method to discover and register devices
   discoverDevices() {
-    const uuid = this.api.hap.uuid.generate('AdvancedRateLimitsSwitch');
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
+    const uuid = this.api.hap.uuid.generate('AdvancedRateLimitsSwitch'); // Generate a unique UUID
+    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid); // Check for existing accessory
 
     if (existingAccessory) {
       this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
-      new qBittorrentPlatformAccessory(this, existingAccessory);
+      new qBittorrentPlatformAccessory(this, existingAccessory); // Restore existing accessory
     } else {
       this.log.info('Adding new accessory: Advanced Rate Limits Switch');
-      const accessory = new this.api.platformAccessory('Advanced Rate Limits', uuid);
-      new qBittorrentPlatformAccessory(this, accessory);
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      const accessory = new this.api.platformAccessory('Advanced Rate Limits', uuid); // Create a new accessory
+      new qBittorrentPlatformAccessory(this, accessory); // Initialize the new accessory
+      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]); // Register the new accessory with Homebridge
     }
   }
 
+  // Method for authenticating with the qBittorrent API
   async authenticate(): Promise<boolean> {
-    const { apiUrl, username, password } = this.config;
-    const cleanedApiUrl = apiUrl.replace(/\/+$/, '');
+    const { apiUrl, username, password } = this.config; // Extract config values
+    const cleanedApiUrl = apiUrl.replace(/\/+$/, ''); // Clean up the API URL
 
     try {
       const { default: axios } = await import('axios'); // Dynamic import of axios
@@ -58,11 +62,12 @@ export class qBittorrentPlatform implements DynamicPlatformPlugin {
         withCredentials: true,
       });
 
+      // Check if authentication was successful
       if (response.status === 200) {
         const cookies = response.headers['set-cookie'];
         if (cookies) {
           const sidCookie = cookies.find(cookie => cookie.startsWith('SID='));
-          this.sid = sidCookie ? sidCookie.split(';')[0] : null;
+          this.sid = sidCookie ? sidCookie.split(';')[0] : null; // Store the session ID
           this.log.debug(`Authenticated successfully. SID: ${this.sid}`);
           return true; // Indicate successful authentication
         } else {
@@ -75,23 +80,25 @@ export class qBittorrentPlatform implements DynamicPlatformPlugin {
       }
     } catch (error) {
       this.log.error('Error during authentication:', error);
-      return false;
+      return false; // Return false on error
     }
   }
 
+  // Getter for the session ID
   getSid(): string | null {
     return this.sid;
   }
 
+  // Method to toggle advanced rate limits
   async toggleAdvancedRateLimits(enable: boolean): Promise<void> {
-    const authenticated = await this.authenticate();
+    const authenticated = await this.authenticate(); // Authenticate before toggling
     if (!authenticated) {
       this.log.error('Failed to authenticate. Cannot toggle rate limits.');
       return; // Early return if authentication fails
     }
 
-    const { apiUrl } = this.config;
-    const cleanedApiUrl = apiUrl.replace(/\/+$/, '');
+    const { apiUrl } = this.config; // Extract the API URL
+    const cleanedApiUrl = apiUrl.replace(/\/+$/, ''); // Clean up the API URL
 
     try {
       const { default: axios } = await import('axios'); // Dynamic import of axios
@@ -101,7 +108,7 @@ export class qBittorrentPlatform implements DynamicPlatformPlugin {
         {
           headers: {
             'Referer': cleanedApiUrl,
-            'Cookie': this.getSid() || '',
+            'Cookie': this.getSid() || '', // Include session ID in cookies
           },
         },
       );
