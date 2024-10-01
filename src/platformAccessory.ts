@@ -26,14 +26,18 @@ export class qBittorrentPlatformAccessory {
   }
 
   async setAdvancedRateLimits(value: CharacteristicValue) {
-    const currentState = await this.getAdvancedRateLimits();
-    const enable = value as boolean;
+    try {
+      const currentState = await this.getAdvancedRateLimits();
+      const enable = value as boolean;
 
-    if (currentState !== enable) {
-      await this.platform.toggleAdvancedRateLimits(enable);
-      this.platform.log.debug('Set Advanced Rate Limits ->', enable);
-    } else {
-      this.platform.log.debug('No toggle needed; state is already', enable);
+      if (currentState !== enable) {
+        await this.platform.toggleAdvancedRateLimits(enable);
+        this.platform.log.debug('Set Advanced Rate Limits ->', enable);
+      } else {
+        this.platform.log.debug('No toggle needed; state is already', enable);
+      }
+    } catch (error) {
+      this.platform.log.error('Error setting Advanced Rate Limits:', error);
     }
   }
 
@@ -42,7 +46,11 @@ export class qBittorrentPlatformAccessory {
     const cleanedApiUrl = apiUrl.replace(/\/+$/, '');
 
     try {
-      await this.platform.authenticate();
+      const authenticated = await this.platform.authenticate();
+      if (!authenticated) {
+        this.platform.log.error('Failed to authenticate. Returning default rate limit state.');
+        return false; // Early return with default state
+      }
 
       const speedLimitsResponse = await axios.get(`${cleanedApiUrl}/api/v2/transfer/speedLimitsMode`, {
         headers: {
