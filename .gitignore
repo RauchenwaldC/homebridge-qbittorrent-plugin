@@ -121,3 +121,6 @@ dist
 
 # Webstorm
 .idea
+
+# Visual Studio Code
+.vscode
