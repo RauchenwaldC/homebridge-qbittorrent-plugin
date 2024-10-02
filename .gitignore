@@ -126,4 +126,4 @@ dist
 .vscode
 
 # Aider
-.aider.*
+.aider*
