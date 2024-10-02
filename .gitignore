@@ -124,3 +124,6 @@ dist
 
 # Visual Studio Code
 .vscode
+
+# Aider
+.aider.*
