@@ -1,6 +1,8 @@
 # qBittorrent Homebridge Plugin
 
-[![npm version](https://badge.fury.io/js/homebridge-qbittorrent-plugin.svg)](https://www.npmjs.com/package/homebridge-qbittorrent-plugin)
+![NPM Version](https://img.shields.io/npm/v/homebridge-qbittorrent-plugin)
+![NPM Downloads](https://img.shields.io/npm/dw/homebridge-qbittorrent-plugin)
+![Static Badge](https://img.shields.io/badge/PayPal.me-%23efefef?logo=paypal&logoColor=%23003087&link=https%3A%2F%2Fwww.paypal.com%2Fpaypalme%2FChristianRauchenwald)
 
 ## Description
 
