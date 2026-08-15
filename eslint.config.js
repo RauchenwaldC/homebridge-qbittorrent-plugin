@@ -3,7 +3,8 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['dist/**'],
+    // dev-env holds development-environment tooling, not plugin code.
+    ignores: ['dist/**', 'dev-env/**'],
   },
   {
     rules: {
