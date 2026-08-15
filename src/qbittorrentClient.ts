@@ -24,8 +24,6 @@ export interface qBittorrentClientOptions {
 interface RequestOptions {
   method?: 'GET' | 'POST';
   body?: URLSearchParams;
-  /** Set false on the login call itself, to stop it recursing. */
-  allowReauth?: boolean;
 }
 
 /**
@@ -179,8 +177,6 @@ export class qBittorrentClient {
    * Issues a request, logging in first when needed and retrying once if the session expired.
    */
   private async request(path: string, options: RequestOptions = {}): Promise<Response> {
-    const allowReauth = options.allowReauth ?? true;
-
     if (this.cookie === null && this.hasCredentials) {
       await this.login();
     }
@@ -188,7 +184,7 @@ export class qBittorrentClient {
     let response = await this.fetchRaw(path, options);
 
     // 403 means the session is missing or stale. Log in once and try again.
-    if (response.status === 403 && allowReauth && this.hasCredentials) {
+    if (response.status === 403 && this.hasCredentials) {
       this.log.debug(`[${this.options.label}] Session expired, re-authenticating.`);
       this.cookie = null;
       await this.login();

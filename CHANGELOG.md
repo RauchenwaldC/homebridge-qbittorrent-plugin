@@ -28,6 +28,8 @@
   so a switch can no longer end up inverted relative to the server.
 - A server that is unreachable or misconfigured now shows as "No Response" in the Home app
   instead of silently reporting "off", and logs one error rather than one per refresh.
+- Renaming a server, changing its address, or re-ordering the list no longer replaces its
+  switch with a new one — which would have lost its HomeKit room, scenes and automations.
 - No more `Configured Name` warning in the Homebridge log on every start.
 
 ### Changed
