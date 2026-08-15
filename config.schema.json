@@ -54,12 +54,12 @@
             },
             "refreshInterval": {
               "title": "Refresh Interval (seconds)",
-              "description": "Leave empty to use the default below. Between 5 and 3600.",
+              "description": "Overrides the global default for this server only. Clear this field to go back to using the global value. Between 5 and 3600.",
               "type": "integer"
             },
             "requestTimeout": {
               "title": "Request Timeout (seconds)",
-              "description": "Leave empty to use the default below. Between 1 and 60.",
+              "description": "Overrides the global default for this server only. Clear this field to go back to using the global value. Between 1 and 60.",
               "type": "integer"
             }
           }
@@ -67,7 +67,7 @@
       },
       "refreshInterval": {
         "title": "Refresh Interval (seconds)",
-        "description": "How often to re-read a server, so changes made in qBittorrent itself reach the Home app.",
+        "description": "Applies to every server, unless that server overrides it in its own Advanced section.",
         "type": "integer",
         "minimum": 5,
         "maximum": 3600,
@@ -75,7 +75,7 @@
       },
       "requestTimeout": {
         "title": "Request Timeout (seconds)",
-        "description": "How long to wait for a server to respond before giving up.",
+        "description": "Applies to every server, unless that server overrides it in its own Advanced section.",
         "type": "integer",
         "minimum": 1,
         "maximum": 60,
@@ -103,7 +103,7 @@
             "servers[].password",
             {
               "type": "fieldset",
-              "title": "Advanced",
+              "title": "Advanced \u2014 overrides the global defaults",
               "expandable": true,
               "expanded": false,
               "items": [
@@ -117,7 +117,7 @@
     },
     {
       "type": "fieldset",
-      "title": "Defaults For All Servers",
+      "title": "Global Defaults For All Servers",
       "expandable": true,
       "expanded": false,
       "items": [

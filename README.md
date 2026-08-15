@@ -93,8 +93,9 @@ The plugin has a settings GUI in the Homebridge UI — use that unless you prefe
 | `refreshInterval` | How often, in seconds, to re-read each server so changes made in qBittorrent reach the Home app. 5–3600. | `30` |
 | `requestTimeout` | How long, in seconds, to wait for a server to respond. 1–60. | `10` |
 
-Any server can override either of these under its own **Advanced** section — useful when one
-qBittorrent is on the local network and another is across the internet:
+Any server can override either of these under its own **Advanced — overrides the global
+defaults** section — useful when one qBittorrent is on the local network and another is
+across the internet. Clearing an override field puts that server back on the global value:
 
 ```json
 {
