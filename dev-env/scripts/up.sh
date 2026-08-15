@@ -71,17 +71,27 @@ until curl -fsS -o /dev/null --max-time 3 http://localhost:8581/api/auth/setting
 
 # Create a known UI login on a fresh install, so scripts/verify.sh can drive the REST API
 # without prompting. Harmless once a user already exists -- the call just fails.
-curl -fsS -o /dev/null -X POST http://localhost:8581/api/setup-wizard/create-first-user \
-  -H 'Content-Type: application/json' \
-  -d '{"username":"dev","password":"devdevdev","name":"Dev","admin":true}' 2>/dev/null \
-  && echo "    created UI login dev / devdevdev" \
-  || echo "    UI login already set up"
+create_login() { # create_login <port>
+  curl -fsS -o /dev/null -X POST "http://localhost:$1/api/setup-wizard/create-first-user" \
+    -H 'Content-Type: application/json' \
+    -d '{"username":"dev","password":"devdevdev","name":"Dev","admin":true}' 2>/dev/null \
+    && echo "    created UI login on :$1 (dev / devdevdev)" \
+    || echo "    UI login on :$1 already set up"
+}
+create_login 8581
+
+if [[ "${WITH_BETA}" == "1" ]]; then
+  echo "==> Waiting for the Homebridge beta UI"
+  until curl -fsS -o /dev/null --max-time 3 http://localhost:8582/api/auth/settings; do sleep 3; done
+  create_login 8582
+fi
 
 cat <<'EOF'
 
 ==> Ready.
 
   Homebridge UI    http://localhost:8581   dev / devdevdev
+                   (beta, with --beta: http://localhost:8582)
   qBittorrent A    http://localhost:8080   admin / devpassword
   qBittorrent B    http://localhost:8081   qbadmin / devpassword2
                    (B also whitelists the compose subnet, so the plugin can

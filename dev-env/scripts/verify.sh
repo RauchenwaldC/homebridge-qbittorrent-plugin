@@ -10,8 +10,9 @@
 # at the end, so do not run it against an environment whose config you care about.
 #
 # Usage:
-#   ./scripts/verify.sh              # run everything
+#   ./scripts/verify.sh              # run everything against the stable container
 #   ./scripts/verify.sh --quick      # skip the slower restart-based scenarios
+#   ./scripts/verify.sh --beta       # run against the Homebridge beta container instead
 #
 # Environment:
 #   HB_URL       Homebridge UI base URL   (default http://localhost:8581)
@@ -23,19 +24,27 @@ set -uo pipefail
 DEV_ENV_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${DEV_ENV_DIR}"
 
-HB_URL="${HB_URL:-http://localhost:8581}"
 HB_USERNAME="${HB_USERNAME:-dev}"
 HB_PASSWORD="${HB_PASSWORD:-devdevdev}"
-CONFIG="state/homebridge/config.json"
-LOG="state/homebridge/homebridge.log"
 QUICK=0
+SERVICE='homebridge'
+PORT=8581
 
 for arg in "$@"; do
   case "$arg" in
     --quick) QUICK=1 ;;
+    --beta)  SERVICE='homebridge-beta'; PORT=8582 ;;
     *) echo "unknown option: $arg" >&2; exit 2 ;;
   esac
 done
+
+HB_URL="${HB_URL:-http://localhost:${PORT}}"
+CONTAINER="$(docker compose ps -q "${SERVICE}" | head -1)"
+CONFIG="state/${SERVICE}/config.json"
+LOG="state/${SERVICE}/homebridge.log"
+# With both the stable and beta containers running, each UI discovers the other's bridge
+# too, so every accessory query has to be filtered to the bridge under test.
+BRIDGE="$(python3 -c "import json;print(json.load(open('state/${SERVICE}/config.json'))['bridge']['username'])" 2>/dev/null)"
 
 PASSED=0
 FAILED=0
@@ -86,7 +95,7 @@ qb_mode() { # qb_mode a|b
     a) user=admin;   pass=devpassword  ;;
     b) user=qbadmin; pass=devpassword2 ;;
   esac
-  docker exec hb-dev sh -c "
+  docker exec "${CONTAINER}" sh -c "
     C=\$(curl -s -i -X POST 'http://${host}:8080/api/v2/auth/login' \
           --data 'username=${user}&password=${pass}' \
         | grep -i '^set-cookie' | sed 's/set-cookie: //I' | cut -d';' -f1)
@@ -99,7 +108,7 @@ qb_set_mode() { # qb_set_mode a|b 0|1
     a) user=admin;   pass=devpassword  ;;
     b) user=qbadmin; pass=devpassword2 ;;
   esac
-  docker exec hb-dev sh -c "
+  docker exec "${CONTAINER}" sh -c "
     C=\$(curl -s -i -X POST 'http://${host}:8080/api/v2/auth/login' \
           --data 'username=${user}&password=${pass}' \
         | grep -i '^set-cookie' | sed 's/set-cookie: //I' | cut -d';' -f1)
@@ -107,8 +116,18 @@ qb_set_mode() { # qb_set_mode a|b 0|1
       'http://${host}:8080/api/v2/transfer/setSpeedLimitsMode' --data 'mode=$2'" 2>/dev/null
 }
 
+# Accessories belonging to the bridge under test.
+mine() {
+  api /api/accessories | BRIDGE="${BRIDGE}" python3 -c "
+import json, os, sys
+bridge = os.environ['BRIDGE']
+print(json.dumps([a for a in json.load(sys.stdin)
+                  if a.get('instance', {}).get('username') == bridge]))
+"
+}
+
 switch_id() { # switch_id <serviceName>
-  api /api/accessories | python3 -c "
+  mine | python3 -c "
 import sys, json
 name = sys.argv[1]
 print(next((a['uniqueId'] for a in json.load(sys.stdin) if a.get('serviceName') == name), ''))
@@ -116,7 +135,7 @@ print(next((a['uniqueId'] for a in json.load(sys.stdin) if a.get('serviceName') 
 }
 
 switch_value() { # switch_value <serviceName>
-  api /api/accessories | python3 -c "
+  mine | python3 -c "
 import sys, json
 name = sys.argv[1]
 print(next((a['values'].get('On') for a in json.load(sys.stdin) if a.get('serviceName') == name), 'missing'))
@@ -124,7 +143,7 @@ print(next((a['values'].get('On') for a in json.load(sys.stdin) if a.get('servic
 }
 
 switch_names() {
-  api /api/accessories | python3 -c "
+  mine | python3 -c "
 import sys, json
 print(','.join(sorted(a['serviceName'] for a in json.load(sys.stdin) if a.get('type') == 'Switch')))
 "
@@ -137,9 +156,9 @@ set_switch() { # set_switch <uniqueId> <0|1>
 }
 
 write_platform_config() { # write_platform_config <json for the qBittorrent platform block>
-  PLATFORM_JSON="$1" python3 - <<'PY'
+  PLATFORM_JSON="$1" CONFIG_PATH="${CONFIG}" python3 - <<'PY'
 import json, os, pathlib
-path = pathlib.Path('state/homebridge/config.json')
+path = pathlib.Path(os.environ['CONFIG_PATH'])
 config = json.loads(path.read_text())
 config['platforms'] = [b for b in config['platforms'] if b.get('platform') == 'config']
 block = json.loads(os.environ['PLATFORM_JSON'])
@@ -153,15 +172,15 @@ log_mark() { wc -l < "${LOG}" 2>/dev/null || echo 0; }
 
 # Simulates a fresh install by dropping the accessories Homebridge would restore from cache.
 clear_accessory_cache() {
-  docker compose stop homebridge >/dev/null 2>&1
-  docker run --rm -v "${DEV_ENV_DIR}/state/homebridge:/hb" alpine \
+  docker compose stop "${SERVICE}" >/dev/null 2>&1
+  docker run --rm -v "${DEV_ENV_DIR}/state/${SERVICE}:/hb" alpine \
     sh -c 'echo "[]" > /hb/accessories/cachedAccessories 2>/dev/null || true' >/dev/null 2>&1
-  docker compose start homebridge >/dev/null 2>&1
+  docker compose start "${SERVICE}" >/dev/null 2>&1
 }
 log_since() { tail -n +"$(( $1 + 1 ))" "${LOG}" 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g'; }
 
 restart_homebridge() {
-  docker compose restart homebridge >/dev/null 2>&1
+  docker compose restart "${SERVICE}" >/dev/null 2>&1
   # Wait for Homebridge itself, not just the UI, to have finished starting.
   local deadline=$(( SECONDS + 120 ))
   until curl -fsS -o /dev/null --max-time 3 "${HB_URL}/api/auth/settings" 2>/dev/null; do
@@ -185,7 +204,7 @@ cleanup() {
   printf '\n%s\n' "$(dim 'Restoring the seed configuration...')"
   write_platform_config "${TWO_SERVERS}"
   docker compose start qbittorrent-b >/dev/null 2>&1
-  docker compose restart homebridge >/dev/null 2>&1
+  docker compose restart "${SERVICE}" >/dev/null 2>&1
 }
 trap cleanup EXIT
 
@@ -207,7 +226,7 @@ print(next((p['installedVersion'] for p in json.load(sys.stdin)
 check "the built version is the one installed (${EXPECTED_VERSION})" "${EXPECTED_VERSION}" "${INSTALLED}"
 check 'two switches exist, named from the config' 'Seedbox A,Seedbox B' "$(switch_names)"
 
-INFO="$(api /api/accessories | python3 -c "
+INFO="$(mine | python3 -c "
 import sys, json
 a = next(x for x in json.load(sys.stdin) if x.get('serviceName') == 'Seedbox A')
 i = a['accessoryInformation']
