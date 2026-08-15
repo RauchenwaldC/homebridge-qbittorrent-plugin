@@ -36,6 +36,21 @@ jobs:
       - name: Check the published file set
         run: npm pack --dry-run
 
+  # engines.homebridge claims ^1.8.0 as well as ^2.0.0, so check the source really does
+  # only use APIs that exist in Homebridge 1.8.
+  homebridge-1-compat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      - run: npm ci
+      - name: Type-check against Homebridge 1.8
+        run: |
+          npm install --no-save homebridge@1.8.5
+          npx tsc --noEmit
+
   audit:
     runs-on: ubuntu-latest
     steps:
