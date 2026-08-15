@@ -127,3 +127,6 @@ dist
 
 # Aider
 .aider*
+
+# macOS
+.DS_Store

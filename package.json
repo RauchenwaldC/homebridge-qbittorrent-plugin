@@ -1,50 +1,63 @@
 {
   "name": "homebridge-qbittorrent-plugin",
-  "displayName": "qBittorrent Plugin",
+  "displayName": "qBittorrent",
   "type": "module",
-  "version": "1.1.2",
+  "version": "2.0.0",
   "private": false,
-  "description": "A Homebridge plugin to control and monitor qBittorrent, enabling advanced rate limit toggling.",
+  "description": "A Homebridge plugin that exposes a HomeKit switch for each qBittorrent server, toggling its alternative speed limits.",
   "author": "Christian Rauchenwald",
   "license": "Apache-2.0",
   "homepage": "https://github.com/RauchenwaldC/homebridge-qbittorrent-plugin?tab=readme-ov-file#qbittorrent-homebridge-plugin",
   "repository": {
     "type": "git",
-    "url": "https://github.com/RauchenwaldC/homebridge-qbittorrent-plugin.git"
+    "url": "git+https://github.com/RauchenwaldC/homebridge-qbittorrent-plugin.git"
   },
   "bugs": {
     "url": "https://github.com/RauchenwaldC/homebridge-qbittorrent-plugin/issues"
   },
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/RauchenwaldC"
+    }
+  ],
   "keywords": [
     "homebridge-plugin",
+    "supports-hap",
     "homebridge",
     "qbittorrent",
-    "torrent"
+    "torrent",
+    "speed-limits",
+    "bandwidth"
   ],
   "main": "dist/index.js",
+  "files": [
+    "dist",
+    "config.schema.json",
+    "README.md",
+    "LICENSE"
+  ],
   "engines": {
-    "node": "^18.20.4 || ^20.16.0 || ^22.6.0",
-    "homebridge": "^1.8.0 || ^2.0.0-beta.0"
+    "node": "^22 || ^24 || ^26",
+    "homebridge": "^1.8.0 || ^2.0.0"
   },
   "scripts": {
     "build": "rimraf ./dist && tsc",
     "lint": "eslint . --max-warnings=0",
-    "prepublishOnly": "npm run lint && npm run build",
+    "test": "npm run build && node --test \"test/**/*.test.ts\"",
+    "typecheck:test": "tsc --project tsconfig.test.json",
+    "check": "npm run lint && npm run test && npm run typecheck:test",
+    "prepublishOnly": "npm run check",
     "watch": "npm run build && npm link && nodemon"
   },
   "devDependencies": {
-    "@eslint/js": "^9.9.0",
-    "@types/eslint__js": "^8.42.3",
-    "@types/node": "^22.2.0",
-    "eslint": "^9.9.0",
-    "homebridge": "^2.0.0-beta.0",
-    "nodemon": "^3.1.4",
-    "rimraf": "^6.0.1",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.5.4",
-    "typescript-eslint": "^8.0.1"
-  },
-  "dependencies": {
-    "axios": "^1.7.7"
+    "@eslint/js": "^9.39.0",
+    "@types/node": "^22.18.0",
+    "eslint": "^9.39.0",
+    "homebridge": "^2.3.1",
+    "nodemon": "^3.1.14",
+    "rimraf": "^6.1.3",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.0"
   }
 }

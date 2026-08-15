@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "."
+  },
+  // The tests are run by `node --test` straight from TypeScript, using Node's built-in type
+  // stripping, and they import the built plugin from ./dist so that what is tested is what
+  // ships. Run `npm run build` before type-checking them.
+  "include": ["test"]
+}

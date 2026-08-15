@@ -2,33 +2,121 @@
   "pluginAlias": "qBittorrentHomebridgePlugin",
   "pluginType": "platform",
   "singular": true,
+  "headerDisplay": "Exposes a HomeKit switch for each qBittorrent server, toggling that server's **alternative speed limits**.\n\nYou need the qBittorrent Web UI enabled (*Tools → Options → Web UI*) on every server you add.",
+  "footerDisplay": "Having trouble? Check the [README](https://github.com/RauchenwaldC/homebridge-qbittorrent-plugin?tab=readme-ov-file#qbittorrent-homebridge-plugin) or open an [issue](https://github.com/RauchenwaldC/homebridge-qbittorrent-plugin/issues).",
   "schema": {
     "type": "object",
     "properties": {
       "name": {
         "title": "Name",
+        "description": "Shown in the Homebridge log.",
         "type": "string",
         "required": true,
-        "default": "qBittorrent Platform"
+        "default": "qBittorrent"
       },
-      "apiUrl": {
-        "title": "API URL",
-        "type": "string",
-        "required": true,
-        "default": "http://localhost:8080"
+      "servers": {
+        "title": "qBittorrent Servers",
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "title": "Name",
+              "description": "The name of the switch in the Home app. Give each server a different name.",
+              "type": "string",
+              "required": true,
+              "default": "qBittorrent"
+            },
+            "apiUrl": {
+              "title": "Web UI URL",
+              "description": "The address of the qBittorrent Web UI, including the port.",
+              "type": "string",
+              "required": true,
+              "format": "uri",
+              "placeholder": "http://localhost:8080"
+            },
+            "username": {
+              "title": "Username",
+              "description": "Leave empty if this server does not require authentication.",
+              "type": "string",
+              "required": false
+            },
+            "password": {
+              "title": "Password",
+              "description": "Leave empty if this server does not require authentication.",
+              "type": "string",
+              "required": false
+            }
+          }
+        }
       },
-      "username": {
-        "title": "Username",
-        "type": "string",
-        "required": false,
-        "default": ""
+      "refreshInterval": {
+        "title": "Refresh Interval",
+        "description": "How often, in seconds, to check each server so the Home app picks up changes made in qBittorrent itself.",
+        "type": "integer",
+        "default": 30,
+        "minimum": 5,
+        "maximum": 3600,
+        "required": false
       },
-      "password": {
-        "title": "Password",
-        "type": "string",
-        "required": false,
-        "default": ""
+      "requestTimeout": {
+        "title": "Request Timeout",
+        "description": "How long, in seconds, to wait for a server to respond before giving up.",
+        "type": "integer",
+        "default": 10,
+        "minimum": 1,
+        "maximum": 60,
+        "required": false
       }
     }
-  }
+  },
+  "layout": [
+    {
+      "key": "servers",
+      "type": "array",
+      "orderable": false,
+      "buttonText": "Add qBittorrent Server",
+      "items": [
+        {
+          "type": "fieldset",
+          "title": "{{ value.name || 'qBittorrent Server' }}",
+          "expandable": true,
+          "expanded": true,
+          "items": [
+            "servers[].name",
+            "servers[].apiUrl",
+            {
+              "type": "flex",
+              "flex-flow": "row wrap",
+              "items": [
+                "servers[].username",
+                {
+                  "key": "servers[].password",
+                  "type": "password"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "Advanced Settings",
+      "expandable": true,
+      "expanded": false,
+      "items": [
+        "name",
+        {
+          "type": "flex",
+          "flex-flow": "row wrap",
+          "items": [
+            "refreshInterval",
+            "requestTimeout"
+          ]
+        }
+      ]
+    }
+  ]
 }

@@ -1,127 +1,196 @@
-import type { API, Characteristic, DynamicPlatformPlugin, Logging, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
+import type {
+  API,
+  Characteristic,
+  DynamicPlatformPlugin,
+  Logging,
+  PlatformAccessory,
+  PlatformConfig,
+  Service,
+} from 'homebridge';
+
+import { resolvePlatformConfig } from './config.js';
 import { qBittorrentPlatformAccessory } from './platformAccessory.js';
-import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
+import { qBittorrentClient } from './qbittorrentClient.js';
+import { LEGACY_ACCESSORY_UUID_SEED, PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
+import type { AccessoryContext, ResolvedServer, qBittorrentPlatformConfig } from './types.js';
 
 export class qBittorrentPlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service;
   public readonly Characteristic: typeof Characteristic;
-  public readonly accessories: PlatformAccessory[] = []; // List to keep track of loaded accessories
-  private sid: string | null = null; // Session ID for authentication
+
+  /** Accessories restored from the Homebridge cache, before they are matched to config. */
+  public readonly accessories: PlatformAccessory<AccessoryContext>[] = [];
+
+  private readonly handlers: qBittorrentPlatformAccessory[] = [];
+  private refreshTimer?: NodeJS.Timeout;
 
   constructor(
     public readonly log: Logging,
     public readonly config: PlatformConfig,
     public readonly api: API,
   ) {
-    this.Service = api.hap.Service; // Access Homebridge services
-    this.Characteristic = api.hap.Characteristic; // Access Homebridge characteristics
+    this.Service = api.hap.Service;
+    this.Characteristic = api.hap.Characteristic;
 
-    this.log.debug('Finished initializing platform:', this.config.name);
+    const resolved = resolvePlatformConfig(this.config as qBittorrentPlatformConfig);
 
-    // Callback for when Homebridge finishes launching
+    for (const warning of resolved.warnings) {
+      this.log.warn(warning);
+    }
+    for (const error of resolved.errors) {
+      this.log.error(error);
+    }
+
+    // Nothing usable is configured, so register nothing at all. Homebridge keeps any
+    // previously cached accessories, but no handlers are attached and no requests are made.
+    // This is what keeps a fresh install quiet until the user has actually set it up.
+    if (resolved.servers.length === 0) {
+      this.log.error(
+        'qBittorrent plugin is not configured, so no accessories will be added. '
+        + 'Open the plugin settings in the Homebridge UI and add at least one qBittorrent server.',
+      );
+      return;
+    }
+
+    if (resolved.usedLegacyLayout) {
+      this.log.info(
+        'Using the single-server settings from an earlier version of this plugin. '
+        + 'Open the plugin settings to move this server into the "qBittorrent Servers" list, '
+        + 'which also lets you add more servers.',
+      );
+    }
+
+    this.log.debug(
+      `Configured ${resolved.servers.length} qBittorrent server(s); `
+      + `refresh every ${resolved.refreshIntervalMs / 1000}s, `
+      + `request timeout ${resolved.requestTimeoutMs / 1000}s.`,
+    );
+
     this.api.on('didFinishLaunching', () => {
-      log.debug('Executed didFinishLaunching callback');
-      this.discoverDevices(); // Discover devices on launch
+      this.discoverDevices(resolved.servers, resolved.requestTimeoutMs);
+      this.startPolling(resolved.refreshIntervalMs);
+    });
+
+    this.api.on('shutdown', () => {
+      if (this.refreshTimer) {
+        clearInterval(this.refreshTimer);
+      }
     });
   }
 
-  // Called when an accessory is loaded from cache
-  configureAccessory(accessory: PlatformAccessory) {
-    this.log.info('Loading accessory from cache:', accessory.displayName);
-    this.accessories.push(accessory); // Add accessory to the list
+  /** Called by Homebridge once per cached accessory, before `didFinishLaunching`. */
+  configureAccessory(accessory: PlatformAccessory<AccessoryContext>): void {
+    this.log.debug('Loading accessory from cache:', accessory.displayName);
+    this.accessories.push(accessory);
   }
 
-  // Method to discover and register devices
-  discoverDevices() {
-    const uuid = this.api.hap.uuid.generate('AdvancedRateLimitsSwitch'); // Generate a unique UUID
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid); // Check for existing accessory
+  /**
+   * Matches configured servers to accessories, creating and removing them as needed.
+   *
+   * Accessories are keyed on `ResolvedServer.key` stored in the accessory context, so
+   * re-ordering or renaming servers in config.json does not orphan them.
+   */
+  private discoverDevices(servers: ResolvedServer[], requestTimeoutMs: number): void {
+    const unclaimed = new Set(this.accessories);
+    const pairs: { server: ResolvedServer; accessory: PlatformAccessory<AccessoryContext> }[] = [];
+    const pending: ResolvedServer[] = [];
 
-    if (existingAccessory) {
-      this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
-      new qBittorrentPlatformAccessory(this, existingAccessory); // Restore existing accessory
-    } else {
-      this.log.info('Adding new accessory: Advanced Rate Limits Switch');
-      const accessory = new this.api.platformAccessory('Advanced Rate Limits', uuid); // Create a new accessory
-      new qBittorrentPlatformAccessory(this, accessory); // Initialize the new accessory
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]); // Register the new accessory with Homebridge
-    }
-  }
-
-  // Method for authenticating with the qBittorrent API
-  async authenticate(): Promise<boolean> {
-    const { apiUrl, username, password } = this.config; // Extract config values
-    const cleanedApiUrl = apiUrl.replace(/\/+$/, ''); // Clean up the API URL
-
-    try {
-      const { default: axios } = await import('axios'); // Dynamic import of axios
-      const response = await axios.post(`${cleanedApiUrl}/api/v2/auth/login`, `username=${username}&password=${password}`, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Referer': cleanedApiUrl,
-        },
-        withCredentials: true,
-      });
-
-      // Check if authentication was successful
-      if (response.status === 200) {
-        const cookies = response.headers['set-cookie'];
-        if (cookies) {
-          const sidCookie = cookies.find(cookie => cookie.startsWith('SID='));
-          this.sid = sidCookie ? sidCookie.split(';')[0] : null; // Store the session ID
-          this.log.debug(`Authenticated successfully. SID: ${this.sid}`);
-          return true; // Indicate successful authentication
-        } else {
-          this.log.error('No cookies returned from login response');
-          return false; // Fail early if no SID
-        }
+    // Pass 1 — re-attach accessories that already know which server they belong to.
+    for (const server of servers) {
+      const existing = [...unclaimed].find(accessory => accessory.context.serverKey === server.key);
+      if (existing) {
+        unclaimed.delete(existing);
+        pairs.push({ server, accessory: existing });
       } else {
-        this.log.error('Authentication failed:', response.status);
-        return false;
+        pending.push(server);
       }
-    } catch (error) {
-      this.log.error('Error during authentication:', error);
-      return false; // Return false on error
-    }
-  }
-
-  // Getter for the session ID
-  getSid(): string | null {
-    return this.sid;
-  }
-
-  // Method to toggle advanced rate limits
-  async toggleAdvancedRateLimits(enable: boolean): Promise<void> {
-    const authenticated = await this.authenticate(); // Authenticate before toggling
-    if (!authenticated) {
-      this.log.error('Failed to authenticate. Cannot toggle rate limits.');
-      return; // Early return if authentication fails
     }
 
-    const { apiUrl } = this.config; // Extract the API URL
-    const cleanedApiUrl = apiUrl.replace(/\/+$/, ''); // Clean up the API URL
-
-    try {
-      const { default: axios } = await import('axios'); // Dynamic import of axios
-      const toggleResponse = await axios.post(
-        `${cleanedApiUrl}/api/v2/transfer/toggleSpeedLimitsMode`, 
-        null,
-        {
-          headers: {
-            'Referer': cleanedApiUrl,
-            'Cookie': this.getSid() || '', // Include session ID in cookies
-          },
-        },
+    // Pass 2 — one-time migration from v1.x, which registered a single accessory under a
+    // fixed UUID and stored nothing in its context. Adopt it for the first server still
+    // waiting, so upgrading users keep their HomeKit rooms, scenes and automations.
+    const legacyUuid = this.api.hap.uuid.generate(LEGACY_ACCESSORY_UUID_SEED);
+    const legacyAccessory = [...unclaimed].find(
+      accessory => accessory.UUID === legacyUuid && accessory.context.serverKey === undefined,
+    );
+    if (legacyAccessory && pending.length > 0) {
+      const server = pending.shift()!;
+      unclaimed.delete(legacyAccessory);
+      pairs.push({ server, accessory: legacyAccessory });
+      this.log.info(
+        `Adopting the existing "${legacyAccessory.displayName}" accessory for ${server.name} `
+        + '(carried over from the previous version of this plugin).',
       );
-
-      this.log.debug(`Toggle Response: ${JSON.stringify(toggleResponse.data)}`);
-
-      if (toggleResponse.status === 200) {
-        this.log.info(`Advanced Rate Limits ${enable ? 'enabled' : 'disabled'}`);
-      } else {
-        this.log.error('Failed to toggle Advanced Rate Limits:', toggleResponse.status);
-      }
-    } catch (error) {
-      this.log.error('Error toggling Advanced Rate Limits:', error);
     }
+
+    // Pass 3 — anything still unmatched is genuinely new.
+    const created: PlatformAccessory<AccessoryContext>[] = [];
+    for (const server of pending) {
+      const uuid = this.api.hap.uuid.generate(`${PLUGIN_NAME}:${server.key}`);
+      const accessory = new this.api.platformAccessory<AccessoryContext>(server.name, uuid);
+      this.log.info(`Adding accessory for ${server.name} (${server.apiUrl}).`);
+      created.push(accessory);
+      pairs.push({ server, accessory });
+    }
+
+    // Pass 4 — cached accessories with no matching server were removed from the config.
+    if (unclaimed.size > 0) {
+      for (const accessory of unclaimed) {
+        this.log.info(`Removing accessory "${accessory.displayName}", which is no longer configured.`);
+      }
+      this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [...unclaimed]);
+    }
+
+    // Persist identity and pick up renames before anything is registered or updated.
+    const renamed: PlatformAccessory<AccessoryContext>[] = [];
+    for (const { server, accessory } of pairs) {
+      const changed = accessory.context.serverKey !== server.key
+        || accessory.context.displayName !== server.name;
+
+      accessory.context.serverKey = server.key;
+      accessory.context.displayName = server.name;
+
+      if (changed && !created.includes(accessory)) {
+        renamed.push(accessory);
+      }
+    }
+
+    if (created.length > 0) {
+      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, created);
+    }
+    if (renamed.length > 0) {
+      this.api.updatePlatformAccessories(renamed);
+    }
+
+    for (const { server, accessory } of pairs) {
+      const client = new qBittorrentClient({
+        baseUrl: server.apiUrl,
+        username: server.username,
+        password: server.password,
+        timeoutMs: requestTimeoutMs,
+        log: this.log,
+        label: server.name,
+      });
+      this.handlers.push(new qBittorrentPlatformAccessory(this, accessory, server, client));
+    }
+  }
+
+  /**
+   * Polls every server so HomeKit reflects changes made in qBittorrent's own Web UI.
+   *
+   * Polling is what keeps the `onGet` handler fast: it answers from the last known value
+   * rather than making HomeKit wait for a network round trip.
+   */
+  private startPolling(refreshIntervalMs: number): void {
+    const refreshAll = () => {
+      for (const handler of this.handlers) {
+        void handler.refresh();
+      }
+    };
+
+    refreshAll();
+    this.refreshTimer = setInterval(refreshAll, refreshIntervalMs);
+    // Do not hold the event loop open just for the poll.
+    this.refreshTimer.unref?.();
   }
 }

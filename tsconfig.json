@@ -2,23 +2,23 @@
   "compilerOptions": {
     "target": "ES2022",
     "lib": [
-      "DOM",
-      "ES2022"
+      "ES2023"
     ],
     "rootDir": "src",
-    "module": "ES2022",
-    "moduleResolution": "node",
+    // Homebridge 2.x ships type definitions (its Matter types in particular) that only
+    // resolve under node16/nodenext/bundler resolution, so "node" no longer works here.
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "strict": true,
     "declaration": true,
     "outDir": "dist",
     "sourceMap": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
   },
   "include": [
-    "eslint.config.js",
-    "homebridge-ui",
     "src"
   ]
 }
