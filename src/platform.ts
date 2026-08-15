@@ -8,11 +8,12 @@ import type {
   Service,
 } from 'homebridge';
 
+import { planAccessories } from './accessoryMatching.js';
 import { resolvePlatformConfig } from './config.js';
 import { migrateLegacyConfig } from './migrate.js';
 import { qBittorrentPlatformAccessory } from './platformAccessory.js';
 import { qBittorrentClient } from './qbittorrentClient.js';
-import { LEGACY_ACCESSORY_UUID_SEED, PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
+import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
 import type { AccessoryContext, ResolvedServer, qBittorrentPlatformConfig } from './types.js';
 
 export class qBittorrentPlatform implements DynamicPlatformPlugin {
@@ -90,75 +91,52 @@ export class qBittorrentPlatform implements DynamicPlatformPlugin {
    * re-ordering or renaming servers in config.json does not orphan them.
    */
   private discoverDevices(servers: ResolvedServer[], requestTimeoutMs: number): void {
-    const unclaimed = new Set(this.accessories);
+    const plan = planAccessories(servers, this.accessories, seed => this.api.hap.uuid.generate(seed));
     const pairs: { server: ResolvedServer; accessory: PlatformAccessory<AccessoryContext> }[] = [];
-    const pending: ResolvedServer[] = [];
+    const updated: PlatformAccessory<AccessoryContext>[] = [];
 
-    // Pass 1 — re-attach accessories that already know which server they belong to.
-    for (const server of servers) {
-      const existing = [...unclaimed].find(accessory => accessory.context.serverKey === server.key);
-      if (existing) {
-        unclaimed.delete(existing);
-        pairs.push({ server, accessory: existing });
-      } else {
-        pending.push(server);
+    for (const { server, accessory, contextChanged, adoptedBecause } of plan.matched) {
+      if (adoptedBecause === 'renamed-url') {
+        this.log.info(
+          `${server.name} has moved to ${server.apiUrl}; keeping its existing accessory so its `
+          + 'HomeKit room and automations are not lost.',
+        );
+      } else if (adoptedBecause === 'upgrade-from-v1') {
+        this.log.info(
+          `Adopting the existing "${accessory.displayName}" accessory for ${server.name} `
+          + '(carried over from the previous version of this plugin).',
+        );
       }
+
+      accessory.context.serverKey = server.key;
+      accessory.context.displayName = server.name;
+      if (contextChanged) {
+        updated.push(accessory);
+      }
+      pairs.push({ server, accessory });
     }
 
-    // Pass 2 — one-time migration from v1.x, which registered a single accessory under a
-    // fixed UUID and stored nothing in its context. Adopt it for the first server still
-    // waiting, so upgrading users keep their HomeKit rooms, scenes and automations.
-    const legacyUuid = this.api.hap.uuid.generate(LEGACY_ACCESSORY_UUID_SEED);
-    const legacyAccessory = [...unclaimed].find(
-      accessory => accessory.UUID === legacyUuid && accessory.context.serverKey === undefined,
-    );
-    if (legacyAccessory && pending.length > 0) {
-      const server = pending.shift()!;
-      unclaimed.delete(legacyAccessory);
-      pairs.push({ server, accessory: legacyAccessory });
-      this.log.info(
-        `Adopting the existing "${legacyAccessory.displayName}" accessory for ${server.name} `
-        + '(carried over from the previous version of this plugin).',
-      );
-    }
-
-    // Pass 3 — anything still unmatched is genuinely new.
     const created: PlatformAccessory<AccessoryContext>[] = [];
-    for (const server of pending) {
-      const uuid = this.api.hap.uuid.generate(`${PLUGIN_NAME}:${server.key}`);
+    for (const { server, uuid } of plan.created) {
       const accessory = new this.api.platformAccessory<AccessoryContext>(server.name, uuid);
+      accessory.context.serverKey = server.key;
+      accessory.context.displayName = server.name;
       this.log.info(`Adding accessory for ${server.name} (${server.apiUrl}).`);
       created.push(accessory);
       pairs.push({ server, accessory });
     }
 
-    // Pass 4 — cached accessories with no matching server were removed from the config.
-    if (unclaimed.size > 0) {
-      for (const accessory of unclaimed) {
+    if (plan.removed.length > 0) {
+      for (const accessory of plan.removed) {
         this.log.info(`Removing accessory "${accessory.displayName}", which is no longer configured.`);
       }
-      this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [...unclaimed]);
+      this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, plan.removed);
     }
-
-    // Persist identity and pick up renames before anything is registered or updated.
-    const renamed: PlatformAccessory<AccessoryContext>[] = [];
-    for (const { server, accessory } of pairs) {
-      const changed = accessory.context.serverKey !== server.key
-        || accessory.context.displayName !== server.name;
-
-      accessory.context.serverKey = server.key;
-      accessory.context.displayName = server.name;
-
-      if (changed && !created.includes(accessory)) {
-        renamed.push(accessory);
-      }
-    }
-
     if (created.length > 0) {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, created);
     }
-    if (renamed.length > 0) {
-      this.api.updatePlatformAccessories(renamed);
+    if (updated.length > 0) {
+      this.api.updatePlatformAccessories(updated);
     }
 
     for (const { server, accessory } of pairs) {

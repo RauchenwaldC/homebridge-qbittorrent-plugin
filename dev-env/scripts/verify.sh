@@ -72,6 +72,20 @@ section() { printf '\n%s\n' "$1"; }
 # --- helpers ----------------------------------------------------------------------------
 
 TOKEN=""
+
+# deploy-plugin.sh restarts the container, so the UI may still be coming up.
+wait_for_ui() {
+  local deadline=$(( SECONDS + 180 ))
+  until curl -fsS -o /dev/null --max-time 3 "${HB_URL}/api/auth/settings" 2>/dev/null; do
+    if (( SECONDS > deadline )); then
+      echo "The Homebridge UI at ${HB_URL} never came up. Is the container running?" >&2
+      exit 1
+    fi
+    sleep 3
+  done
+  sleep 5
+}
+
 login() {
   TOKEN="$(curl -fsS -X POST "${HB_URL}/api/auth/login" \
     -H 'Content-Type: application/json' \
@@ -212,6 +226,7 @@ trap cleanup EXIT
 
 printf '%s\n' "Verifying homebridge-qbittorrent-plugin against ${HB_URL}"
 
+wait_for_ui
 login
 
 section 'Plugin loads and registers one switch per configured server'
