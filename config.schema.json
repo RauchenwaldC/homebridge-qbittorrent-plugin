@@ -2,14 +2,14 @@
   "pluginAlias": "qBittorrentHomebridgePlugin",
   "pluginType": "platform",
   "singular": true,
-  "headerDisplay": "Exposes a HomeKit switch for each qBittorrent server, toggling that server's **alternative speed limits**.\n\nYou need the qBittorrent Web UI enabled (*Tools → Options → Web UI*) on every server you add.",
-  "footerDisplay": "Having trouble? Check the [README](https://github.com/RauchenwaldC/homebridge-qbittorrent-plugin?tab=readme-ov-file#qbittorrent-homebridge-plugin) or open an [issue](https://github.com/RauchenwaldC/homebridge-qbittorrent-plugin/issues).",
+  "headerDisplay": "Exposes one HomeKit switch per qBittorrent server, toggling that server's **alternative speed limits**.\n\nEnable the Web UI on every server you add (*Tools \u2192 Options \u2192 Web UI*).",
+  "footerDisplay": "A switch is tied to its server's URL, so you can rename a server without losing its HomeKit room, scenes or automations.\n\nHaving trouble? See the [README](https://github.com/RauchenwaldC/homebridge-qbittorrent-plugin?tab=readme-ov-file#qbittorrent-homebridge-plugin) or open an [issue](https://github.com/RauchenwaldC/homebridge-qbittorrent-plugin/issues).",
   "schema": {
     "type": "object",
     "properties": {
       "name": {
         "title": "Name",
-        "description": "Shown in the Homebridge log.",
+        "description": "Shown in the Homebridge log only.",
         "type": "string",
         "required": true,
         "default": "qBittorrent"
@@ -20,85 +20,70 @@
         "minItems": 1,
         "items": {
           "type": "object",
+          "title": "qBittorrent Server",
           "properties": {
             "name": {
               "title": "Name",
-              "description": "The name of the switch in the Home app. Give each server a different name.",
+              "description": "The switch name in the Home app. Give each server a different name.",
               "type": "string",
               "required": true,
-              "default": "qBittorrent"
+              "minLength": 1,
+              "maxLength": 64,
+              "placeholder": "qBittorrent"
             },
             "apiUrl": {
               "title": "Web UI URL",
-              "description": "The address of the qBittorrent Web UI, including the port.",
+              "description": "Address of the qBittorrent Web UI, including the port.",
               "type": "string",
               "required": true,
-              "format": "uri",
+              "minLength": 1,
               "placeholder": "http://localhost:8080"
             },
             "username": {
               "title": "Username",
               "description": "Leave empty if this server does not require authentication.",
-              "type": "string",
-              "required": false
+              "type": "string"
             },
             "password": {
               "title": "Password",
               "description": "Leave empty if this server does not require authentication.",
               "type": "string",
-              "required": false
+              "x-schema-form": {
+                "type": "password"
+              }
             }
           }
         }
       },
       "refreshInterval": {
-        "title": "Refresh Interval",
-        "description": "How often, in seconds, to check each server so the Home app picks up changes made in qBittorrent itself.",
+        "title": "Refresh Interval (seconds)",
+        "description": "How often to re-read each server, so changes made in qBittorrent itself reach the Home app.",
         "type": "integer",
-        "default": 30,
+        "placeholder": 30,
         "minimum": 5,
-        "maximum": 3600,
-        "required": false
+        "maximum": 3600
       },
       "requestTimeout": {
-        "title": "Request Timeout",
-        "description": "How long, in seconds, to wait for a server to respond before giving up.",
+        "title": "Request Timeout (seconds)",
+        "description": "How long to wait for a server to respond before giving up.",
         "type": "integer",
-        "default": 10,
+        "placeholder": 10,
         "minimum": 1,
-        "maximum": 60,
-        "required": false
+        "maximum": 60
       }
     }
   },
   "layout": [
     {
       "key": "servers",
-      "type": "array",
-      "orderable": false,
-      "buttonText": "Add qBittorrent Server",
+      "type": "tabarray",
+      "notitle": true,
+      "title": "{{ value.name || 'Server' }}",
       "items": [
-        {
-          "type": "fieldset",
-          "title": "{{ value.name || 'qBittorrent Server' }}",
-          "expandable": true,
-          "expanded": true,
-          "items": [
-            "servers[].name",
-            "servers[].apiUrl",
-            {
-              "type": "flex",
-              "flex-flow": "row wrap",
-              "items": [
-                "servers[].username",
-                {
-                  "key": "servers[].password",
-                  "type": "password"
-                }
-              ]
-            }
-          ]
-        }
+        "servers[].name",
+        "servers[].apiUrl",
+        "servers[].username",
+        "servers[].password"
       ]
     },
     {
@@ -108,14 +93,8 @@
       "expanded": false,
       "items": [
         "name",
-        {
-          "type": "flex",
-          "flex-flow": "row wrap",
-          "items": [
-            "refreshInterval",
-            "requestTimeout"
-          ]
-        }
+        "refreshInterval",
+        "requestTimeout"
       ]
     }
   ]

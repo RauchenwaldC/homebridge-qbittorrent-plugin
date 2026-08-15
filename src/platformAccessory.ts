@@ -30,9 +30,10 @@ export class qBittorrentPlatformAccessory {
     this.service = this.accessory.getService(this.platform.Service.Switch)
       ?? this.accessory.addService(this.platform.Service.Switch);
 
-    // Keep the switch name in step with the config, in both HomeKit and the Homebridge UI.
+    // Keep the switch name in step with the config. ConfiguredName is deliberately not set:
+    // it is not part of the Switch service definition, so HAP logs a warning for it on
+    // every start.
     this.service.setCharacteristic(this.platform.Characteristic.Name, this.server.name);
-    this.service.setCharacteristic(this.platform.Characteristic.ConfiguredName, this.server.name);
 
     this.service.getCharacteristic(this.platform.Characteristic.On)
       .onGet(this.handleGet.bind(this))

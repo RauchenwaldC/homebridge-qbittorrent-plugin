@@ -37,6 +37,8 @@ interface FakeServer {
   logins: () => number;
   /** Force the next request to be treated as an expired session. */
   expireSession: () => void;
+  /** True if the client ever sent a Referer or Origin header. */
+  sawForbiddenHeader: () => boolean;
 }
 
 /** A stand-in for qBittorrent's Web API, matching the behaviour of a real 5.2.3 server. */
@@ -53,6 +55,7 @@ async function startFakeQbittorrent(options: FakeOptions = {}): Promise<FakeServ
   let loginCount = 0;
   let validSid: string | null = null;
   let forceExpiry = false;
+  let sawForbiddenHeader = false;
 
   const handler = async (req: IncomingMessage, res: ServerResponse) => {
     const url = new URL(req.url ?? '/', 'http://localhost');
@@ -64,9 +67,11 @@ async function startFakeQbittorrent(options: FakeOptions = {}): Promise<FakeServ
       req.on('end', () => resolve(data));
     });
 
-    // qBittorrent answers 401 when the Referer does not match its own origin.
-    const referer = req.headers.referer;
-    if (referer !== undefined && !referer.startsWith('http://127.0.0.1:')) {
+    // qBittorrent compares Referer/Origin against the Host it actually saw, and answers
+    // 401 on a mismatch. Behind a reverse proxy that mismatch is the normal case, so the
+    // client must send neither header. Fail loudly here if it ever starts to.
+    if (req.headers.referer !== undefined || req.headers.origin !== undefined) {
+      sawForbiddenHeader = true;
       res.writeHead(401).end('Bad referer');
       return;
     }
@@ -142,6 +147,7 @@ async function startFakeQbittorrent(options: FakeOptions = {}): Promise<FakeServ
     expireSession: () => {
       forceExpiry = true;
     },
+    sawForbiddenHeader: () => sawForbiddenHeader,
   };
 }
 
@@ -283,6 +289,16 @@ describe('qBittorrentClient', () => {
 
     await client.setSpeedLimitsMode(false);
     assert.equal(server.mode(), false);
+  });
+
+  it('sends neither Referer nor Origin, which would break reverse-proxied servers', async () => {
+    const server = await fake();
+    const client = clientFor(server);
+
+    await client.setSpeedLimitsMode(true);
+    await client.getSpeedLimitsMode();
+
+    assert.equal(server.sawForbiddenHeader(), false);
   });
 
   it('reads the qBittorrent version for the accessory details', async () => {

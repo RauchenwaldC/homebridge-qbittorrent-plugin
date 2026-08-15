@@ -9,6 +9,7 @@ import type {
 } from 'homebridge';
 
 import { resolvePlatformConfig } from './config.js';
+import { migrateLegacyConfig } from './migrate.js';
 import { qBittorrentPlatformAccessory } from './platformAccessory.js';
 import { qBittorrentClient } from './qbittorrentClient.js';
 import { LEGACY_ACCESSORY_UUID_SEED, PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
@@ -53,11 +54,9 @@ export class qBittorrentPlatform implements DynamicPlatformPlugin {
     }
 
     if (resolved.usedLegacyLayout) {
-      this.log.info(
-        'Using the single-server settings from an earlier version of this plugin. '
-        + 'Open the plugin settings to move this server into the "qBittorrent Servers" list, '
-        + 'which also lets you add more servers.',
-      );
+      // This run already uses the migrated values; rewriting config.json is only so the
+      // settings page shows the server in its list rather than an empty one.
+      void migrateLegacyConfig(this.api.user.configPath(), this.log);
     }
 
     this.log.debug(

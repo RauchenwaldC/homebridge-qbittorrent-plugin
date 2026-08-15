@@ -64,8 +64,8 @@ function extractSessionCookie(response: Response): string | null {
  *     `Ok.`), and sets a session cookie named `SID` on older builds but `QBT_SID_<port>` on
  *     current ones. Both are matched.
  *   - Bad credentials answer `401`, and a missing or expired session answers `403`.
- *   - The `Referer` header must either be absent or match the Web UI origin, otherwise
- *     qBittorrent's CSRF protection answers `401`.
+ *   - `Referer` and `Origin` are checked only when present, and against the Host actually
+ *     seen, so neither is sent. See the comment in `fetchRaw()`.
  */
 export class qBittorrentClient {
   private cookie: string | null = null;
@@ -138,11 +138,15 @@ export class qBittorrentClient {
   /** Issues a single HTTP request. No session handling — see `request()` for that. */
   private async fetchRaw(path: string, options: RequestOptions): Promise<Response> {
     const url = `${this.options.baseUrl}${path}`;
-    const headers: Record<string, string> = {
-      // qBittorrent validates Referer against its own origin when CSRF protection is on.
-      Referer: this.options.baseUrl,
-      Origin: this.options.baseUrl,
-    };
+
+    // Deliberately no Referer or Origin header. qBittorrent's CSRF protection only checks
+    // them when they are present, and it compares them against the Host it actually saw.
+    // Behind a reverse proxy the configured URL and that Host differ, so sending either
+    // header turns a working setup into a hard 401 -- indistinguishable from a wrong
+    // password, and it counts towards WebUI\MaxAuthenticationFailCount, which eventually
+    // bans the Homebridge host. Verified against qBittorrent 5.2.3: with neither header,
+    // login, reads and writes all succeed.
+    const headers: Record<string, string> = {};
 
     if (this.cookie !== null) {
       headers.Cookie = this.cookie;
