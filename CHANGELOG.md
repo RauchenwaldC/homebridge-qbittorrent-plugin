@@ -9,7 +9,9 @@
   plugin settings.
 - Switches now stay in sync with qBittorrent. Toggling alternative speed limits in the Web
   UI is reflected in the Home app on the next refresh, rather than only when HomeKit asks.
-- `refreshInterval` and `requestTimeout` settings.
+- `refreshInterval` and `requestTimeout` settings, which any individual server can override
+  under its own **Advanced** section — a qBittorrent on the local network can be polled far
+  more often than one across the internet.
 - The accessory now reports the qBittorrent version as its firmware revision.
 
 ### Fixed

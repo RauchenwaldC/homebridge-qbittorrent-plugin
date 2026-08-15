@@ -8,6 +8,10 @@ export interface qBittorrentServerConfig {
   apiUrl?: string;
   username?: string;
   password?: string;
+  /** Overrides the platform-wide setting for this server only. */
+  refreshInterval?: number;
+  /** Overrides the platform-wide setting for this server only. */
+  requestTimeout?: number;
 }
 
 /**
@@ -44,6 +48,10 @@ export interface ResolvedServer {
    * UUID and to re-attach cached accessories across restarts and config re-orders.
    */
   key: string;
+  /** How often to poll this server, after applying any per-server override. */
+  refreshIntervalMs: number;
+  /** How long to wait for this server, after applying any per-server override. */
+  requestTimeoutMs: number;
 }
 
 /**
@@ -55,6 +63,7 @@ export interface ResolvedPlatformConfig {
   errors: string[];
   /** Non-fatal problems: the plugin carries on, but the user should know. */
   warnings: string[];
+  /** The platform-wide defaults. Each server carries its own effective values. */
   refreshIntervalMs: number;
   requestTimeoutMs: number;
   /** True when the deprecated top-level single-server layout was found. */

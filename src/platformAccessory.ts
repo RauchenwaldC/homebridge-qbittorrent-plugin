@@ -46,6 +46,11 @@ export class qBittorrentPlatformAccessory {
     return this.platform.log;
   }
 
+  /** How often this server should be polled, after any per-server override. */
+  get refreshIntervalMs(): number {
+    return this.server.refreshIntervalMs;
+  }
+
   /**
    * Answers HomeKit from the last polled value.
    *

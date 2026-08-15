@@ -82,14 +82,34 @@ The plugin has a settings GUI in the Homebridge UI — use that unless you prefe
 | `apiUrl` | Address of the qBittorrent Web UI, including the port. A reverse-proxy sub-path such as `https://example.com/qbit` works too. | Yes |
 | `username` | Web UI username. Leave empty if the server does not require authentication. | No |
 | `password` | Web UI password. Leave empty if the server does not require authentication. | No |
+| `refreshInterval` | Overrides the default below, for this server only. | No |
+| `requestTimeout` | Overrides the default below, for this server only. | No |
 
-### Platform options
+### Defaults for all servers
 
 | Field | Description | Default |
 |---|---|---|
 | `name` | Name shown in the Homebridge log. | `qBittorrent` |
 | `refreshInterval` | How often, in seconds, to re-read each server so changes made in qBittorrent reach the Home app. 5–3600. | `30` |
 | `requestTimeout` | How long, in seconds, to wait for a server to respond. 1–60. | `10` |
+
+Any server can override either of these under its own **Advanced** section — useful when one
+qBittorrent is on the local network and another is across the internet:
+
+```json
+{
+  "platform": "qBittorrentHomebridgePlugin",
+  "name": "qBittorrent",
+  "refreshInterval": 60,
+  "servers": [
+    { "name": "NAS", "apiUrl": "http://192.168.1.10:8080", "refreshInterval": 10 },
+    { "name": "Seedbox", "apiUrl": "https://seedbox.example.com", "requestTimeout": 30 }
+  ]
+}
+```
+
+The NAS is polled every 10 seconds, the seedbox every 60, and the seedbox is given 30 seconds
+to answer instead of 10.
 
 ### Servers without a password
 

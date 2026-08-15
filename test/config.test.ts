@@ -81,6 +81,8 @@ describe('resolvePlatformConfig', () => {
         username: 'admin',
         password: 'secret',
         key: 'http://localhost:8080',
+        refreshIntervalMs: 30_000,
+        requestTimeoutMs: 10_000,
       },
     );
   });
@@ -164,6 +166,65 @@ describe('resolvePlatformConfig', () => {
 
     assert.equal(result.refreshIntervalMs, 30_000);
     assert.equal(result.requestTimeoutMs, 10_000);
+  });
+
+  it('lets a server override the refresh interval and request timeout', () => {
+    const result = resolvePlatformConfig(config({
+      refreshInterval: 60,
+      requestTimeout: 20,
+      servers: [
+        // A NAS on the same LAN can be polled hard; a remote seedbox needs longer to answer.
+        { name: 'LAN', apiUrl: 'http://lan:8080', refreshInterval: 10, requestTimeout: 5 },
+        { name: 'Remote', apiUrl: 'http://remote:8080' },
+      ],
+    }));
+
+    assert.deepEqual(
+      result.servers.map(s => [s.name, s.refreshIntervalMs, s.requestTimeoutMs]),
+      [['LAN', 10_000, 5_000], ['Remote', 60_000, 20_000]],
+    );
+  });
+
+  it('falls back to the platform setting for a server that does not override it', () => {
+    const result = resolvePlatformConfig(config({
+      refreshInterval: 45,
+      servers: [{ name: 'A', apiUrl: 'http://a:8080', requestTimeout: 3 }],
+    }));
+
+    assert.equal(result.servers[0].refreshIntervalMs, 45_000);
+    assert.equal(result.servers[0].requestTimeoutMs, 3_000);
+  });
+
+  it('falls back to the built-in defaults when neither level sets anything', () => {
+    const result = resolvePlatformConfig(config({
+      servers: [{ name: 'A', apiUrl: 'http://a:8080' }],
+    }));
+
+    assert.equal(result.servers[0].refreshIntervalMs, 30_000);
+    assert.equal(result.servers[0].requestTimeoutMs, 10_000);
+  });
+
+  it('clamps a hand-edited per-server override rather than ignoring it', () => {
+    const result = resolvePlatformConfig(config({
+      servers: [
+        { name: 'Fast', apiUrl: 'http://a:8080', refreshInterval: 0, requestTimeout: 0 },
+        { name: 'Slow', apiUrl: 'http://b:8080', refreshInterval: 99_999, requestTimeout: 99_999 },
+      ],
+    }));
+
+    assert.deepEqual(
+      result.servers.map(s => [s.refreshIntervalMs, s.requestTimeoutMs]),
+      [[5_000, 1_000], [3_600_000, 60_000]],
+    );
+  });
+
+  it('ignores a per-server override that is not a number', () => {
+    const result = resolvePlatformConfig(config({
+      refreshInterval: 90,
+      servers: [{ name: 'A', apiUrl: 'http://a:8080', refreshInterval: 'often' as unknown as number }],
+    }));
+
+    assert.equal(result.servers[0].refreshIntervalMs, 90_000);
   });
 
   it('survives a servers list containing junk', () => {

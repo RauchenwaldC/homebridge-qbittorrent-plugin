@@ -3,7 +3,7 @@
   "pluginType": "platform",
   "singular": true,
   "headerDisplay": "Exposes one HomeKit switch per qBittorrent server, toggling that server's **alternative speed limits**.\n\nEnable the Web UI on every server you add (*Tools \u2192 Options \u2192 Web UI*).",
-  "footerDisplay": "A switch is tied to its server's URL, so you can rename a server without losing its HomeKit room, scenes or automations.\n\nHaving trouble? See the [README](https://github.com/RauchenwaldC/homebridge-qbittorrent-plugin?tab=readme-ov-file#qbittorrent-homebridge-plugin) or open an [issue](https://github.com/RauchenwaldC/homebridge-qbittorrent-plugin/issues).",
+  "footerDisplay": "A switch is tied to its server, so renaming a server or changing its address keeps its HomeKit room, scenes and automations.\n\nHaving trouble? See the [README](https://github.com/RauchenwaldC/homebridge-qbittorrent-plugin?tab=readme-ov-file#qbittorrent-homebridge-plugin) or open an [issue](https://github.com/RauchenwaldC/homebridge-qbittorrent-plugin/issues).",
   "schema": {
     "type": "object",
     "properties": {
@@ -51,13 +51,23 @@
               "x-schema-form": {
                 "type": "password"
               }
+            },
+            "refreshInterval": {
+              "title": "Refresh Interval (seconds)",
+              "description": "Leave empty to use the default below. Between 5 and 3600.",
+              "type": "integer"
+            },
+            "requestTimeout": {
+              "title": "Request Timeout (seconds)",
+              "description": "Leave empty to use the default below. Between 1 and 60.",
+              "type": "integer"
             }
           }
         }
       },
       "refreshInterval": {
         "title": "Refresh Interval (seconds)",
-        "description": "How often to re-read each server, so changes made in qBittorrent itself reach the Home app.",
+        "description": "How often to re-read a server, so changes made in qBittorrent itself reach the Home app.",
         "type": "integer",
         "minimum": 5,
         "maximum": 3600,
@@ -90,14 +100,24 @@
             "servers[].name",
             "servers[].apiUrl",
             "servers[].username",
-            "servers[].password"
+            "servers[].password",
+            {
+              "type": "fieldset",
+              "title": "Advanced",
+              "expandable": true,
+              "expanded": false,
+              "items": [
+                "servers[].refreshInterval",
+                "servers[].requestTimeout"
+              ]
+            }
           ]
         }
       ]
     },
     {
       "type": "fieldset",
-      "title": "Advanced Settings",
+      "title": "Defaults For All Servers",
       "expandable": true,
       "expanded": false,
       "items": [
