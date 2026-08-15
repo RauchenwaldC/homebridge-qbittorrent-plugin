@@ -63,24 +63,6 @@ function clampNumber(value: unknown, fallback: number, min: number, max: number)
 }
 
 /**
- * Resolves a setting that a server may override.
- *
- * Precedence is: this server's value, then the platform-wide value, then the built-in
- * default. An out-of-range value is clamped rather than rejected -- the settings GUI keeps
- * these within range, so anything else was hand-edited and clamping is friendlier than
- * ignoring it.
- */
-function resolveOverride(
-  serverValue: unknown, platformValue: number, min: number, max: number,
-): number {
-  const raw = typeof serverValue === 'number' ? serverValue : Number.parseFloat(asString(serverValue));
-  if (!Number.isFinite(raw)) {
-    return platformValue;
-  }
-  return Math.min(Math.max(raw, min), max) * 1000;
-}
-
-/**
  * Reads the platform config, migrates the deprecated single-server layout, validates every
  * server and reports what is wrong.
  *
@@ -163,12 +145,6 @@ export function resolvePlatformConfig(config: qBittorrentPlatformConfig): Resolv
       username,
       password,
       key,
-      refreshIntervalMs: resolveOverride(
-        entry.refreshInterval, refreshIntervalMs, MIN_REFRESH_INTERVAL, MAX_REFRESH_INTERVAL,
-      ),
-      requestTimeoutMs: resolveOverride(
-        entry.requestTimeout, requestTimeoutMs, MIN_REQUEST_TIMEOUT, MAX_REQUEST_TIMEOUT,
-      ),
     });
   });
 

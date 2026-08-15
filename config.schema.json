@@ -2,8 +2,8 @@
   "pluginAlias": "qBittorrentHomebridgePlugin",
   "pluginType": "platform",
   "singular": true,
-  "headerDisplay": "Exposes one HomeKit switch per qBittorrent server, toggling that server's **alternative speed limits**.\n\nEnable the Web UI on every server you add (*Tools \u2192 Options \u2192 Web UI*).",
-  "footerDisplay": "A switch is tied to its server, so renaming a server or changing its address keeps its HomeKit room, scenes and automations.\n\nHaving trouble? See the [README](https://github.com/RauchenwaldC/homebridge-qbittorrent-plugin?tab=readme-ov-file#qbittorrent-homebridge-plugin) or open an [issue](https://github.com/RauchenwaldC/homebridge-qbittorrent-plugin/issues).",
+  "headerDisplay": "Each server below becomes one switch in the Home app, turning that server's **alternative speed limits** on and off.\n\nEnable the Web UI on every server you add (*Tools \u2192 Options \u2192 Web UI*).",
+  "footerDisplay": "Nothing is saved until you press Save, so to undo a change just close this window without saving.\n\nA switch is tied to its server, so renaming a server or changing its address keeps its HomeKit room, scenes and automations.\n\nHaving trouble? See the [README](https://github.com/RauchenwaldC/homebridge-qbittorrent-plugin?tab=readme-ov-file#qbittorrent-homebridge-plugin) or open an [issue](https://github.com/RauchenwaldC/homebridge-qbittorrent-plugin/issues).",
   "schema": {
     "type": "object",
     "properties": {
@@ -51,78 +51,73 @@
               "x-schema-form": {
                 "type": "password"
               }
-            },
-            "refreshInterval": {
-              "title": "Refresh Interval (seconds)",
-              "description": "Overrides the global default for this server only. Clear this field to go back to using the global value. Between 5 and 3600.",
-              "type": "integer"
-            },
-            "requestTimeout": {
-              "title": "Request Timeout (seconds)",
-              "description": "Overrides the global default for this server only. Clear this field to go back to using the global value. Between 1 and 60.",
-              "type": "integer"
             }
           }
         }
       },
       "refreshInterval": {
         "title": "Refresh Interval (seconds)",
-        "description": "Applies to every server, unless that server overrides it in its own Advanced section.",
+        "description": "How often to re-read every server, so changes made in qBittorrent itself reach the Home app.",
         "type": "integer",
         "minimum": 5,
         "maximum": 3600,
-        "default": 30
+        "default": 30,
+        "x-schema-form": {
+          "type": "number"
+        }
       },
       "requestTimeout": {
         "title": "Request Timeout (seconds)",
-        "description": "Applies to every server, unless that server overrides it in its own Advanced section.",
+        "description": "How long to wait for a server to respond before giving up.",
         "type": "integer",
         "minimum": 1,
         "maximum": 60,
-        "default": 10
+        "default": 10,
+        "x-schema-form": {
+          "type": "number"
+        }
       }
     }
   },
   "layout": [
     {
-      "key": "servers",
-      "type": "array",
-      "notitle": true,
-      "orderable": false,
-      "buttonText": "Add Server",
+      "type": "tabs",
       "items": [
         {
-          "type": "fieldset",
-          "expandable": true,
-          "expanded": true,
-          "title": "{{ value.name || 'Server #' + $index }}",
+          "type": "tab",
+          "title": "Servers",
           "items": [
-            "servers[].name",
-            "servers[].apiUrl",
-            "servers[].username",
-            "servers[].password",
             {
-              "type": "fieldset",
-              "title": "Advanced \u2014 overrides the global defaults",
-              "expandable": true,
-              "expanded": false,
+              "key": "servers",
+              "type": "array",
+              "notitle": true,
+              "orderable": false,
+              "buttonText": "Add Server",
               "items": [
-                "servers[].refreshInterval",
-                "servers[].requestTimeout"
+                {
+                  "type": "fieldset",
+                  "expandable": true,
+                  "expanded": true,
+                  "title": "{{ value.name || 'Server #' + $index }}",
+                  "items": [
+                    "servers[].name",
+                    "servers[].apiUrl",
+                    "servers[].username",
+                    "servers[].password"
+                  ]
+                }
               ]
             }
           ]
+        },
+        {
+          "type": "tab",
+          "title": "Settings",
+          "items": [
+            "refreshInterval",
+            "requestTimeout"
+          ]
         }
-      ]
-    },
-    {
-      "type": "fieldset",
-      "title": "Global Defaults For All Servers",
-      "expandable": true,
-      "expanded": false,
-      "items": [
-        "refreshInterval",
-        "requestTimeout"
       ]
     }
   ]

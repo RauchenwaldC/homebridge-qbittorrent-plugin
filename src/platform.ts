@@ -24,7 +24,7 @@ export class qBittorrentPlatform implements DynamicPlatformPlugin {
   public readonly accessories: PlatformAccessory<AccessoryContext>[] = [];
 
   private readonly handlers: qBittorrentPlatformAccessory[] = [];
-  private readonly refreshTimers: NodeJS.Timeout[] = [];
+  private refreshTimer?: NodeJS.Timeout;
 
   constructor(
     public readonly log: Logging,
@@ -70,8 +70,8 @@ export class qBittorrentPlatform implements DynamicPlatformPlugin {
       // Nothing in here is expected to throw, but an exception escaping a Homebridge event
       // listener takes the whole bridge down with it, so it stays contained.
       try {
-        this.discoverDevices(resolved.servers);
-        this.startPolling();
+        this.discoverDevices(resolved.servers, resolved.requestTimeoutMs);
+        this.startPolling(resolved.refreshIntervalMs);
       } catch (error) {
         this.log.error(
           'Failed to set up the qBittorrent accessories:',
@@ -81,8 +81,8 @@ export class qBittorrentPlatform implements DynamicPlatformPlugin {
     });
 
     this.api.on('shutdown', () => {
-      for (const timer of this.refreshTimers) {
-        clearInterval(timer);
+      if (this.refreshTimer) {
+        clearInterval(this.refreshTimer);
       }
     });
   }
@@ -99,7 +99,7 @@ export class qBittorrentPlatform implements DynamicPlatformPlugin {
    * Accessories are keyed on `ResolvedServer.key` stored in the accessory context, so
    * re-ordering or renaming servers in config.json does not orphan them.
    */
-  private discoverDevices(servers: ResolvedServer[]): void {
+  private discoverDevices(servers: ResolvedServer[], requestTimeoutMs: number): void {
     const plan = planAccessories(servers, this.accessories, seed => this.api.hap.uuid.generate(seed));
     const pairs: { server: ResolvedServer; accessory: PlatformAccessory<AccessoryContext> }[] = [];
     const updated: PlatformAccessory<AccessoryContext>[] = [];
@@ -153,7 +153,7 @@ export class qBittorrentPlatform implements DynamicPlatformPlugin {
         baseUrl: server.apiUrl,
         username: server.username,
         password: server.password,
-        timeoutMs: server.requestTimeoutMs,
+        timeoutMs: requestTimeoutMs,
         log: this.log,
         label: server.name,
       });
@@ -166,18 +166,17 @@ export class qBittorrentPlatform implements DynamicPlatformPlugin {
    *
    * Polling is what keeps the `onGet` handler fast: it answers from the last known value
    * rather than making HomeKit wait for a network round trip.
-   *
-   * Each server gets its own timer, because each may set its own refresh interval -- a
-   * qBittorrent on the same LAN can be polled far more often than one across the internet.
    */
-  private startPolling(): void {
-    for (const handler of this.handlers) {
-      void handler.refresh();
+  private startPolling(refreshIntervalMs: number): void {
+    const refreshAll = () => {
+      for (const handler of this.handlers) {
+        void handler.refresh();
+      }
+    };
 
-      const timer = setInterval(() => void handler.refresh(), handler.refreshIntervalMs);
-      // Do not hold the event loop open just for the poll.
-      timer.unref?.();
-      this.refreshTimers.push(timer);
-    }
+    refreshAll();
+    this.refreshTimer = setInterval(refreshAll, refreshIntervalMs);
+    // Do not hold the event loop open just for the poll.
+    this.refreshTimer.unref?.();
   }
 }
