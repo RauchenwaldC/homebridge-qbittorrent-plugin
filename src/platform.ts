@@ -67,8 +67,17 @@ export class qBittorrentPlatform implements DynamicPlatformPlugin {
     );
 
     this.api.on('didFinishLaunching', () => {
-      this.discoverDevices(resolved.servers, resolved.requestTimeoutMs);
-      this.startPolling(resolved.refreshIntervalMs);
+      // Nothing in here is expected to throw, but an exception escaping a Homebridge event
+      // listener takes the whole bridge down with it, so it stays contained.
+      try {
+        this.discoverDevices(resolved.servers, resolved.requestTimeoutMs);
+        this.startPolling(resolved.refreshIntervalMs);
+      } catch (error) {
+        this.log.error(
+          'Failed to set up the qBittorrent accessories:',
+          error instanceof Error ? error.message : String(error),
+        );
+      }
     });
 
     this.api.on('shutdown', () => {
