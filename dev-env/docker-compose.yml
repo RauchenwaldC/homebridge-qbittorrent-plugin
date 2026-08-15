@@ -1,0 +1,130 @@
+# Local Homebridge plugin development environment.
+#
+#   homebridge        Homebridge stable (current release) + Homebridge UI on :8581
+#   homebridge-beta   Homebridge beta channel + UI on :8582 (compatibility testing)
+#   qbittorrent-a     qBittorrent instance "A" WebUI on :8080  (admin / devpassword)
+#   qbittorrent-b     qBittorrent instance "B" WebUI on :8081  (qbadmin / devpassword2,
+#                                                               plus subnet auth bypass)
+#
+# Run ./scripts/up.sh to start everything, then ./scripts/deploy-plugin.sh after each
+# code change. Everything under ./state is generated and gitignored; the seed
+# qBittorrent configs live in ./seed and are copied into ./state on first run.
+#
+# NOTE ON mDNS: Docker Desktop for Mac cannot do host networking, so these bridges
+# are NOT discoverable by a real iPhone. That is fine -- this environment exists to
+# exercise plugin code, the config schema and the Homebridge UI, not to pair with
+# HomeKit. See README.md for how to pair if you need it.
+
+name: homebridge-dev
+
+# HOW THE PLUGIN GETS IN. The image runs
+#   npm --prefix /var/lib/homebridge install --save homebridge@latest
+# on every start, and two things make a naive mount wrong:
+#   1. npm cannot rename a live bind mount, so mounting into node_modules makes the image's
+#      startup `npm install` fail with EBUSY -- and its `rm -rf node_modules` then DELETES
+#      THE CONTENTS OF THE MOUNTED HOST DIRECTORY. Never mount a working copy in there.
+#   2. That startup install also prunes: anything in node_modules that is not a declared
+#      dependency of /homebridge/package.json is removed on every container start.
+#
+# So ./scripts/deploy-plugin.sh runs `npm pack` into ./plugin-package (mounted read-only,
+# well away from node_modules) and declares it in /homebridge/package.json as a file:
+# dependency. npm then installs and keeps it, and the container runs exactly the file set
+# that would be published to npm.
+
+services:
+  homebridge:
+    image: homebridge/homebridge:latest
+    container_name: hb-dev
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+      PGID: '1000'
+      PUID: '1000'
+      HOMEBRIDGE_CONFIG_UI_PORT: '8581'
+      # -D debug logging, -I insecure mode (lets the UI read/write characteristics)
+      HOMEBRIDGE_DEBUG: '1'
+      HOMEBRIDGE_INSECURE: '1'
+      # Leave Avahi ON. /etc/nsswitch.conf in this image is
+      #   hosts: files mdns4_minimal [NOTFOUND=return] dns
+      # so with avahi-daemon stopped, mdns4_minimal returns NOTFOUND, [NOTFOUND=return]
+      # halts the lookup before `dns` is ever tried, and ALL name resolution in the
+      # container fails (npm install included). Setting ENABLE_AVAHI=0 breaks the container.
+      ENABLE_AVAHI: '1'
+    ports:
+      - '8581:8581'   # Homebridge UI
+      - '51826:51826' # HAP (bridge) - only reachable if you route to it yourself
+    volumes:
+      - ./state/homebridge:/homebridge
+      - ./state/plugin-package:/plugin-package:ro
+    networks:
+      devnet:
+        ipv4_address: 172.28.0.10
+
+  homebridge-beta:
+    image: homebridge/homebridge:beta
+    container_name: hb-dev-beta
+    restart: unless-stopped
+    profiles: ['beta']
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+      PGID: '1000'
+      PUID: '1000'
+      HOMEBRIDGE_CONFIG_UI_PORT: '8582'
+      HOMEBRIDGE_DEBUG: '1'
+      HOMEBRIDGE_INSECURE: '1'
+      # See the note on the `homebridge` service: turning this off breaks container DNS.
+      ENABLE_AVAHI: '1'
+    ports:
+      - '8582:8582'
+      - '51827:51827'
+    volumes:
+      - ./state/homebridge-beta:/homebridge
+      - ./state/plugin-package:/plugin-package:ro
+    networks:
+      devnet:
+        ipv4_address: 172.28.0.11
+
+  qbittorrent-a:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent-a
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+      PGID: '1000'
+      PUID: '1000'
+      WEBUI_PORT: '8080'
+      TORRENTING_PORT: '6881'
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./state/qbittorrent-a:/config
+      - ./state/downloads-a:/downloads
+    networks:
+      devnet:
+        ipv4_address: 172.28.0.20
+
+  qbittorrent-b:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent-b
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+      PGID: '1000'
+      PUID: '1000'
+      WEBUI_PORT: '8080'
+      TORRENTING_PORT: '6883'
+    ports:
+      - '8081:8080'
+    volumes:
+      - ./state/qbittorrent-b:/config
+      - ./state/downloads-b:/downloads
+    networks:
+      devnet:
+        ipv4_address: 172.28.0.21
+
+networks:
+  devnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

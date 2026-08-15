@@ -9,7 +9,7 @@
     "properties": {
       "name": {
         "title": "Name",
-        "description": "Shown in the Homebridge log only.",
+        "description": "Shown in the Homebridge log. Not the name of any switch.",
         "type": "string",
         "required": true,
         "default": "qBittorrent"
@@ -59,31 +59,40 @@
         "title": "Refresh Interval (seconds)",
         "description": "How often to re-read each server, so changes made in qBittorrent itself reach the Home app.",
         "type": "integer",
-        "placeholder": 30,
         "minimum": 5,
-        "maximum": 3600
+        "maximum": 3600,
+        "default": 30
       },
       "requestTimeout": {
         "title": "Request Timeout (seconds)",
         "description": "How long to wait for a server to respond before giving up.",
         "type": "integer",
-        "placeholder": 10,
         "minimum": 1,
-        "maximum": 60
+        "maximum": 60,
+        "default": 10
       }
     }
   },
   "layout": [
     {
       "key": "servers",
-      "type": "tabarray",
+      "type": "array",
       "notitle": true,
-      "title": "{{ value.name || 'Server' }}",
+      "orderable": false,
+      "buttonText": "Add Server",
       "items": [
-        "servers[].name",
-        "servers[].apiUrl",
-        "servers[].username",
-        "servers[].password"
+        {
+          "type": "fieldset",
+          "expandable": true,
+          "expanded": true,
+          "title": "{{ value.name || 'Server #' + $index }}",
+          "items": [
+            "servers[].name",
+            "servers[].apiUrl",
+            "servers[].username",
+            "servers[].password"
+          ]
+        }
       ]
     },
     {
@@ -92,7 +101,6 @@
       "expandable": true,
       "expanded": false,
       "items": [
-        "name",
         "refreshInterval",
         "requestTimeout"
       ]

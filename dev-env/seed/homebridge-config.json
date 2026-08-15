@@ -1,0 +1,38 @@
+{
+    "bridge": {
+        "name": "Homebridge Dev",
+        "username": "0E:11:22:33:44:55",
+        "port": 51826,
+        "pin": "031-45-154",
+        "advertiser": "bonjour-hap"
+    },
+    "accessories": [],
+    "platforms": [
+        {
+            "name": "Config",
+            "port": 8581,
+            "platform": "config",
+            "log": {
+                "method": "file",
+                "path": "/homebridge/homebridge.log"
+            }
+        },
+        {
+            "name": "qBittorrent",
+            "platform": "qBittorrentHomebridgePlugin",
+            "refreshInterval": 10,
+            "servers": [
+                {
+                    "name": "Seedbox A",
+                    "apiUrl": "http://qbittorrent-a:8080",
+                    "username": "admin",
+                    "password": "devpassword"
+                },
+                {
+                    "name": "Seedbox B",
+                    "apiUrl": "http://qbittorrent-b:8080"
+                }
+            ]
+        }
+    ]
+}
