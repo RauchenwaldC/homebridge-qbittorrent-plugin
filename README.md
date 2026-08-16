@@ -1,5 +1,6 @@
 # qBittorrent Homebridge Plugin
 
+[![verified-by-homebridge](https://img.shields.io/badge/_-verified-blueviolet?color=%23491F59&style=flat&logoColor=%23FFFFFF&logo=homebridge)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
 [![NPM Version](https://img.shields.io/npm/v/homebridge-qbittorrent-plugin)](https://www.npmjs.com/package/homebridge-qbittorrent-plugin)
 [![NPM Downloads](https://img.shields.io/npm/dw/homebridge-qbittorrent-plugin)](https://www.npmjs.com/package/homebridge-qbittorrent-plugin)
 [![Build and Lint](https://github.com/RauchenwaldC/homebridge-qbittorrent-plugin/actions/workflows/build.yml/badge.svg)](https://github.com/RauchenwaldC/homebridge-qbittorrent-plugin/actions/workflows/build.yml)
@@ -142,6 +143,13 @@ cd dev-env
 ./scripts/up.sh              # start Homebridge + two qBittorrent servers
 ./scripts/deploy-plugin.sh   # build the plugin and install it into Homebridge
 ```
+
+## Support
+
+If the plugin is useful to you, you can support its development through
+[GitHub Sponsors](https://github.com/sponsors/RauchenwaldC) or
+[PayPal](https://paypal.me/ChristianRauchenwald). Both links also show up in the Homebridge
+UI on the plugin's page. Bug reports and pull requests are worth just as much.
 
 ## License
 
