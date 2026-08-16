@@ -2,7 +2,7 @@
   "name": "homebridge-qbittorrent-plugin",
   "displayName": "qBittorrent",
   "type": "module",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "private": false,
   "description": "A Homebridge plugin that exposes a HomeKit switch for each qBittorrent server, toggling its alternative speed limits.",
   "author": "Christian Rauchenwald",

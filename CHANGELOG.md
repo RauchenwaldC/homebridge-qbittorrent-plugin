@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.0.1
+
+No code changes. Following the final pass of the
+[Homebridge verification](https://github.com/homebridge/plugins/issues/1172), this release
+carries the updated package metadata to npm, which is the only place the Homebridge UI
+reads it from.
+
+### Added
+
+- The plugin is now **verified by Homebridge**; the README carries the verified badge.
+- Donation links (GitHub Sponsors and PayPal) in the package metadata, so the Homebridge UI
+  shows a donate button on the plugin's page, plus a matching Support section in the README.
+
 ## 2.0.0
 
 ### Added
